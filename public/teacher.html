@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Panel — PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" style="display:none; position:fixed; inset:0; background:rgba(10,10,15,0.95); z-index:300; display:flex; align-items:center; justify-content:center;">
+    <div class="card card-static" style="max-width:400px; width:90%; padding:32px;">
+      <h2 style="margin-bottom:8px;">Teacher Authentication</h2>
+      <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:20px;">Enter the faculty password to join the panel.</p>
+      <div id="auth-error" style="display:none;" class="msg-error" style="margin-bottom:12px;"></div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="teacher-name-input" placeholder="e.g. Prof. Sharma" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password-input" placeholder="Faculty password">
+      </div>
+      <button class="btn btn-primary" id="auth-btn" style="width:100%;">Join Panel</button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const roomCode = params.get('room');
+    if (!roomCode) {
+      document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; color:var(--text-muted);">No room code provided.</div>';
+    }
+    document.getElementById('auth-modal').style.display = 'flex';
+  </script>
+
+  <!-- Main UI -->
+  <div id="main-ui" style="display:none;">
+
+    <!-- Top bar -->
+    <div style="background:rgba(10,10,15,0.9); backdrop-filter:blur(16px); border-bottom:1px solid var(--border-subtle); padding:10px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span class="badge" id="status-pill">WAITING</span>
+        <span style="font-size:0.875rem; color:var(--text-secondary);">👤 <span id="student-name-label">—</span></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);">Room:</span>
+        <span style="font-family:var(--font-mono); font-size:1rem; font-weight:700; color:var(--accent-indigo);" id="room-code-label">—</span>
+        <span style="font-size:0.8rem; color:var(--text-muted);" id="timer-label">00:00</span>
+        <span style="font-size:0.8rem; color:var(--text-muted);" id="teacher-count-label">0/4 teachers</span>
+      </div>
+    </div>
+
+    <!-- Moderator controls bar -->
+    <div id="moderator-bar" style="display:none; background:rgba(99,102,241,0.08); border-bottom:1px solid rgba(99,102,241,0.2); padding:10px 24px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <span style="font-size:0.75rem; color:var(--accent-indigo); font-weight:600;">MODERATOR CONTROLS</span>
+      <button class="btn btn-primary btn-sm" id="start-ai-btn" disabled>▶ Start AI Round</button>
+      <button class="btn btn-secondary btn-sm" id="start-panel-btn" disabled>🎯 Start Panel Round</button>
+      <button class="btn btn-secondary btn-sm" id="close-session-btn" style="border-color:rgba(239,68,68,0.4); color:#fca5a5;" disabled>✕ Close Session</button>
+    </div>
+
+    <main style="display:grid; grid-template-columns:55% 45%; min-height:calc(100vh - 56px);">
+
+      <!-- LEFT: Video + Transcript -->
+      <div style="padding:20px; border-right:1px solid var(--border-subtle);">
+
+        <!-- Student video -->
+        <div style="position:relative; border-radius:16px; overflow:hidden; background:#12121A; margin-bottom:16px;">
+          <video id="student-feed" autoplay playsinline style="width:100%; height:300px; object-fit:cover; display:block;"></video>
+          <div id="video-placeholder" style="width:100%; height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.2"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.893L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+            <span style="font-size:0.875rem; color:var(--text-muted);">Waiting for student video...</span>
+          </div>
+          <!-- Waveform canvas -->
+          <canvas id="waveform-canvas" width="560" height="60" style="width:100%; height:60px; display:block; background:#0f1117;"></canvas>
+          <!-- Speaking indicator -->
+          <div id="speaking-badge" style="position:absolute; top:12px; right:12px; background:rgba(16,185,129,0.9); color:#fff; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; display:none;">🎤 SPEAKING</div>
+        </div>
+
+        <!-- Current question -->
+        <div class="card card-static" style="margin-bottom:16px;">
+          <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px;">Current Question</div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <span class="badge badge-indigo" id="current-q-source">—</span>
+            <span style="font-size:0.8rem; color:var(--text-muted);" id="current-q-index"></span>
+          </div>
+          <p id="current-q-text" style="font-size:1.125rem; line-height:1.5; font-weight:500;"></p>
+        </div>
+
+        <!-- Live transcript -->
+        <div class="card card-static" style="margin-bottom:16px;">
+          <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px;">Live Transcript</div>
+          <div id="transcript-display" style="font-size:1rem; line-height:1.7; color:var(--text-secondary); min-height:60px; max-height:200px; overflow-y:auto;"></div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Controls + Scoring + Disagreement -->
+      <div style="padding:20px; overflow-y:auto;">
+
+        <!-- INTERRUPT section -->
+        <div class="card card-static" style="margin-bottom:16px; background:rgba(239,68,68,0.04); border-color:rgba(239,68,68,0.15);">
+          <h3 style="font-size:0.875rem; margin-bottom:12px; color:#fca5a5;">⚡ Interrupt — Ask Now</h3>
+          <div id="interrupt-form">
+            <input type="text" id="interrupt-question" placeholder="Type your question here..." style="margin-bottom:10px;">
+            <button class="btn" id="fire-interrupt-btn" style="background:rgba(239,68,68,0.8); color:#fff; width:100%;">🔥 Fire Interrupt</button>
+          </div>
+          <div id="interrupt-sent" style="display:none; text-align:center; padding:12px;">
+            <span class="badge badge-orange">Interrupt sent!</span>
+          </div>
+        </div>
+
+        <!-- SCORE section -->
+        <div class="card card-static" id="score-panel" style="margin-bottom:16px; display:none;">
+          <h3 style="font-size:0.875rem; margin-bottom:12px;">📝 Score This Answer</h3>
+          <div id="score-dim-rows"></div>
+          <div class="form-group" style="margin-top:12px;">
+            <label>Written Feedback</label>
+            <textarea id="feedback-input" rows="3" placeholder="Minimum 3 lines of feedback for the student..." style="margin-bottom:12px;"></textarea>
+          </div>
+          <button class="btn btn-primary" id="submit-score-btn" style="width:100%;">Submit Score</button>
+        </div>
+
+        <!-- DISAGREEMENT GRID -->
+        <div class="card card-static" id="disagreement-panel" style="margin-bottom:16px; display:none;">
+          <h3 style="font-size:0.875rem; margin-bottom:12px;">⚠️ Panel Disagreement</h3>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">Red cells indicate dimensions where teachers gave very different scores.</p>
+          <div id="disagreement-grid"></div>
+        </div>
+
+        <!-- PANEL ROUND QUESTIONS -->
+        <div class="card card-static" id="panel-questions-panel" style="margin-bottom:16px;">
+          <h3 style="font-size:0.875rem; margin-bottom:12px;">🎯 Panel Round Questions</h3>
+          <div id="panel-questions-list"></div>
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <input type="text" id="new-panel-q" placeholder="Add a panel question..." style="flex:1; font-size:0.875rem; padding:8px 12px; margin-bottom:0;">
+            <button class="btn btn-secondary btn-sm" id="add-panel-q-btn">Add</button>
+          </div>
+        </div>
+
+        <!-- Teachers list -->
+        <div class="card card-static">
+          <h3 style="font-size:0.875rem; margin-bottom:12px;">👥 Panel Members</h3>
+          <div id="teachers-panel-list"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Resolution Modal -->
+  <div id="resolution-modal" style="display:none; position:fixed; inset:0; background:rgba(10,10,15,0.9); z-index:200; display:flex; align-items:center; justify-content:center;">
+    <div class="card card-static" style="max-width:480px; width:90%; padding:28px;">
+      <h3 style="margin-bottom:16px;">Resolve Disagreement</h3>
+      <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:20px;">Dimension: <strong id="res-dim-label" style="color:var(--accent-red);"></strong></p>
+      <div id="res-scores-display" style="margin-bottom:16px;"></div>
+      <div class="form-group">
+        <label>Your Decision</label>
+        <select id="res-decision-select" style="margin-bottom:12px;">
+          <option value="">— Choose —</option>
+          <option value="maintain">I maintain my score</option>
+          <option value="revise_3">I revise to 3</option>
+          <option value="revise_4">I revise to 4</option>
+          <option value="dissent">I dissent — my reasoning:</option>
+        </select>
+        <textarea id="res-dissent-text" rows="3" placeholder="Explain your reasoning for the dissent..." style="display:none; margin-bottom:12px;"></textarea>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" onclick="closeResModal()" style="flex:1;">Cancel</button>
+        <button class="btn btn-primary" id="lock-resolution-btn" style="flex:1;">Lock Resolution</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .score-dot-t { width:32px; height:32px; border-radius:50%; background:var(--bg-elevated); border:1px solid var(--border-subtle); cursor:pointer; transition:all 0.15s; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted); flex-shrink:0; }
+    .score-dot-t:hover { border-color:var(--accent-indigo); transform:scale(1.15); }
+    .score-dot-t.selected { background:var(--accent-indigo); border-color:var(--accent-indigo); color:#fff; box-shadow:0 0 12px rgba(99,102,241,0.4); }
+    .grid-cell { padding:8px; border-radius:8px; text-align:center; font-family:var(--font-mono); font-size:0.875rem; font-weight:600; }
+    .grid-cell.agreed { background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); }
+    .grid-cell.flagged { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; cursor:pointer; }
+    .grid-cell.resolved { background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); color:#6ee7b7; }
+    .teacher-color-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; color:#fff; flex-shrink:0; }
+  </style>
+
+  <script>
+    const COLORS = ['#6366F1','#F59E0B','#EF4444','#10B981','#A855F7','#EC4899','#14B8A6','#F97316'];
+    function nameColor(name) { return COLORS[name.charCodeAt(0) % COLORS.length]; }
+
+    const params = new URLSearchParams(window.location.search);
+    const roomCode = params.get('room');
+
+    let socket = null;
+    let teacherId = null;
+    let teacherName = null;
+    let isModerator = false;
+    let currentQuestionIndex = -1;
+    let currentPhase = 'waiting';
+    let teachers = [];
+    let audioCtx = null;
+    let analyser = null;
+    let resContext = null; // resolution context
+
+    // ─── Auth ────────────────────────────────────────────────────────────────────
+    document.getElementById('auth-btn').addEventListener('click', async () => {
+      const name = document.getElementById('teacher-name-input').value.trim();
+      const password = document.getElementById('password-input').value;
+      if (!name) { document.getElementById('auth-error').style.display = 'block'; document.getElementById('auth-error').textContent = 'Please enter your name.'; return; }
+      if (!password) { document.getElementById('auth-error').style.display = 'block'; document.getElementById('auth-error').textContent = 'Please enter password.'; return; }
+
+      try {
+        const res = await fetch(`/api/sessions/${roomCode}/teacher-auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password, teacherName: name })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Auth failed');
+        teacherId = data.teacherId;
+        teacherName = data.teacherName;
+        sessionStorage.setItem('pdrs_teacher_' + roomCode, JSON.stringify({ teacherId, teacherName }));
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('main-ui').style.display = 'block';
+        document.getElementById('room-code-label').textContent = roomCode;
+        initSocket();
+        startTimer();
+      } catch (e) {
+        document.getElementById('auth-error').style.display = 'block';
+        document.getElementById('auth-error').textContent = e.message;
+      }
+    });
+
+    document.getElementById('res-decision-select').addEventListener('change', (e) => {
+      document.getElementById('res-dissent-text').style.display = e.target.value === 'dissent' ? 'block' : 'none';
+    });
+
+    document.getElementById('lock-resolution-btn').addEventListener('click', () => {
+      const sel = document.getElementById('res-decision-select').value;
+      if (!sel) return;
+      let finalScore = null;
+      let dissentReason = '';
+      if (sel === 'maintain' || sel === 'dissent') {
+        finalScore = parseInt(document.getElementById('res-dissent-text').dataset.myScore || '3');
+      } else {
+        finalScore = parseInt(sel.split('_')[1]);
+      }
+      if (sel === 'dissent') dissentReason = document.getElementById('res-dissent-text').value;
+      socket.emit('resolve-disagreement', { roomCode, questionIndex: parseInt(document.getElementById('res-dissent-text').dataset.qIdx), dimension: document.getElementById('res-dissent-text').dataset.dim, finalScore, resolvingTeacherId: teacherId, dissentReason });
+      closeResModal();
+    });
+
+    // ─── Socket ─────────────────────────────────────────────────────────────────
+    function initSocket() {
+      socket = io();
+      socket.emit('join-session', { roomCode, role: 'teacher', teacherId, teacherName });
+
+      socket.on('connect', () => console.log('[socket] connected'));
+
+      socket.on('teachers-list', ({ teachers: list }) => {
+        teachers = list;
+        isModerator = teachers[0]?.teacherId === teacherId;
+        document.getElementById('moderator-bar').style.display = isModerator ? 'flex' : 'none';
+        renderTeachersPanel();
+        document.getElementById('teacher-count-label').textContent = `${teachers.length}/4 teachers`;
+        if (isModerator) {
+          document.getElementById('start-ai-btn').disabled = false;
+          document.getElementById('start-panel-btn').disabled = false;
+          document.getElementById('close-session-btn').disabled = false;
+        }
+      });
+
+      socket.on('teacher-joined', ({ teacherName: name, count, teacherId: tid }) => {
+        document.getElementById('teacher-count-label').textContent = `${count}/4 teachers`;
+        if (!teachers.find(t => t.teacherId === tid)) teachers.push({ teacherId: tid, teacherName: name });
+        renderTeachersPanel();
+        showToast(`${name} joined the panel`, 'indigo');
+      });
+
+      socket.on('phase-changed', ({ phase, questionIndex }) => {
+        currentPhase = phase;
+        currentQuestionIndex = questionIndex;
+        updatePhasePill(phase);
+        if (phase === 'ai_round') {
+          loadCurrentQuestion(questionIndex, 'AI Question');
+          document.getElementById('score-panel').style.display = 'none';
+        } else if (phase === 'panel_round') {
+          loadCurrentQuestion(questionIndex, 'Panel Question');
+        }
+      });
+
+      socket.on('interrupt-fired', ({ teacherName: name, question }) => {
+        showToast(`${name} fired an interrupt: "${question}"`, 'orange');
+        document.getElementById('current-q-source').textContent = 'INTERRUPT';
+        document.getElementById('current-q-source').className = 'badge badge-orange';
+        document.getElementById('current-q-text').textContent = question;
+      });
+
+      socket.on('student-ready', ({ studentName }) => {
+        document.getElementById('student-name-label').textContent = studentName;
+        document.getElementById('video-placeholder').querySelector('span').textContent = 'Student camera active...';
+      });
+
+      // WebRTC
+      socket.on('webrtc-offer', async ({ offer }) => {
+        console.log('[webrtc] received offer, creating answer');
+        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('webrtc-answer', { roomCode, answer });
+        pc.ontrack = ({ streams }) => {
+          document.getElementById('student-feed').srcObject = streams[0];
+          document.getElementById('video-placeholder').style.display = 'none';
+          document.getElementById('student-feed').style.display = 'block';
+          setupWaveform(streams[0]);
+        };
+        pc.onicecandidate = ({ candidate }) => {
+          if (candidate) socket.emit('webrtc-ice', { roomCode, candidate });
+        };
+        window._teacherPC = pc;
+      });
+
+      socket.on('webrtc-ice', ({ candidate }) => {
+        if (window._teacherPC) window._teacherPC.addIceCandidate(new RTCIceCandidate(candidate));
+      });
+
+      socket.on('transcript-chunk', ({ text, isFinal }) => {
+        const el = document.getElementById('transcript-display');
+        el.textContent += (isFinal ? '' : '…') + text + (isFinal ? ' ' : '');
+        if (isFinal) el.scrollTop = el.scrollHeight;
+      });
+
+      socket.on('score-update', ({ questionIndex, grid, flagged, canClose }) => {
+        renderDisagreementGrid(questionIndex, grid, flagged);
+        if (flagged.length > 0) showToast(`⚠️ Disagreement on: ${flagged.join(', ')}`, 'red');
+        if (canClose) showToast('✅ All disagreements resolved — session can be closed', 'green');
+      });
+
+      socket.on('disagreement-resolved', ({ questionIndex, dimension, finalScore }) => {
+        showToast(`Disagreement on ${dimension} resolved → ${finalScore}`, 'green');
+      });
+
+      socket.on('panel-question-added', ({ teacherName: name, question }) => {
+        addPanelQuestion(name, question);
+        showToast(`${name} added a panel question`, 'indigo');
+      });
+
+      socket.on('panel-question-answered', ({ questionIndex }) => {
+        const el = document.querySelector(`[data-pq-idx="${questionIndex}"]`);
+        if (el) { el.querySelector('.pq-status').textContent = '✓ Answered'; el.querySelector('.pq-status').style.color = 'var(--accent-emerald)'; }
+      });
+
+      socket.on('ai-score', ({ questionIndex, scores, transcript }) => {
+        showToast('AI has scored this question', 'teal');
+      });
+
+      socket.on('session-closed', ({ finalScores }) => {
+        document.getElementById('status-pill').textContent = 'CLOSED';
+        document.getElementById('status-pill').className = 'badge badge-emerald';
+        showToast('Session closed!', 'green');
+      });
+
+      // Student side: transcript
+      socket.on('student-answered', ({ questionIndex }) => {
+        document.getElementById('score-panel').style.display = 'block';
+        initScoreDots();
+      });
+    }
+
+    // ─── Moderator Controls ──────────────────────────────────────────────────────
+    document.getElementById('start-ai-btn').addEventListener('click', () => {
+      socket.emit('phase-change', { roomCode, phase: 'ai_round', questionIndex: 0 });
+      socket.emit('phase-change', { roomCode, phase: 'ai_round', questionIndex: 0 });
+    });
+
+    document.getElementById('start-panel-btn').addEventListener('click', () => {
+      socket.emit('phase-change', { roomCode, phase: 'panel_round', questionIndex: 0 });
+    });
+
+    document.getElementById('close-session-btn').addEventListener('click', () => {
+      if (!confirm('Close this session? This will compute final scores.')) return;
+      socket.emit('session-close', { roomCode });
+    });
+
+    // ─── Interrupt ──────────────────────────────────────────────────────────────
+    document.getElementById('fire-interrupt-btn').addEventListener('click', () => {
+      const q = document.getElementById('interrupt-question').value.trim();
+      if (!q) return;
+      socket.emit('teacher-interrupt', { roomCode, teacherId, teacherName, question: q });
+      document.getElementById('interrupt-form').style.display = 'none';
+      document.getElementById('interrupt-sent').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('interrupt-form').style.display = 'block';
+        document.getElementById('interrupt-sent').style.display = 'none';
+        document.getElementById('interrupt-question').value = '';
+      }, 3000);
+    });
+
+    // ─── Scoring ─────────────────────────────────────────────────────────────────
+    function initScoreDots() {
+      const dims = [
+        { key: 'clarity', label: 'Clarity', desc: 'Can they explain clearly?' },
+        { key: 'reasoning', label: 'Logical Reasoning', desc: 'Is their thinking structured?' },
+        { key: 'depth', label: 'Technical Depth', desc: 'Do they know internals?' },
+        { key: 'ownership', label: 'Ownership', desc: 'Do they own the design decisions?' }
+      ];
+      const el = document.getElementById('score-dim-rows');
+      el.innerHTML = dims.map(d => `
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span style="font-size:0.875rem; font-weight:500;">${d.label}</span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${d.desc}</span>
+          </div>
+          <div class="score-dots-t" data-dim="${d.key}" style="display:flex; gap:6px;">
+            ${[1,2,3,4,5].map(n => `<button class="score-dot-t" data-val="${n}">${n}</button>`).join('')}
+          </div>
+        </div>`).join('');
+
+      el.querySelectorAll('.score-dot-t').forEach(dot => {
+        dot.addEventListener('click', () => {
+          const row = dot.closest('.score-dots-t');
+          row.querySelectorAll('.score-dot-t').forEach(d => d.classList.remove('selected'));
+          dot.classList.add('selected');
+        });
+      });
+    }
+
+    document.getElementById('submit-score-btn').addEventListener('click', () => {
+      const dims = ['clarity', 'reasoning', 'depth', 'ownership'];
+      const scores = {};
+      let allFilled = true;
+      dims.forEach(dim => {
+        const selected = document.querySelector(`.score-dots-t[data-dim="${dim}"] .score-dot-t.selected`);
+        scores[dim] = selected ? parseInt(selected.dataset.val) : 0;
+        if (!scores[dim]) allFilled = false;
+      });
+      if (!allFilled) { alert('Please score all dimensions.'); return; }
+      const feedback = document.getElementById('feedback-input').value.trim();
+      socket.emit('teacher-score', { roomCode, teacherId, questionIndex: currentQuestionIndex, scores, feedback });
+      document.getElementById('score-panel').style.display = 'none';
+      document.getElementById('feedback-input').value = '';
+      showToast('Score submitted!', 'green');
+    });
+
+    // ─── Panel Questions ─────────────────────────────────────────────────────────
+    document.getElementById('add-panel-q-btn').addEventListener('click', () => {
+      const q = document.getElementById('new-panel-q').value.trim();
+      if (!q) return;
+      socket.emit('add-panel-question', { roomCode, teacherId, teacherName, question: q });
+      document.getElementById('new-panel-q').value = '';
+    });
+
+    function addPanelQuestion(byName, question) {
+      const list = document.getElementById('panel-questions-list');
+      const idx = list.children.length;
+      const div = document.createElement('div');
+      div.className = 'question-item';
+      div.setAttribute('data-pq-idx', idx);
+      div.style.cssText = 'display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;';
+      div.innerHTML = `
+        <span class="pq-status" style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap; padding-top:2px;">○</span>
+        <div><span style="font-size:0.75rem; color:var(--accent-indigo);">${byName}:</span> <span>${question}</span></div>`;
+      list.appendChild(div);
+    }
+
+    // ─── Disagreement Grid ──────────────────────────────────────────────────────
+    function renderDisagreementGrid(questionIndex, grid, flagged) {
+      const panel = document.getElementById('disagreement-panel');
+      panel.style.display = 'block';
+      const dims = ['clarity', 'reasoning', 'depth', 'ownership'];
+      const teacherIds = Object.keys(grid[dims[0]] || {});
+
+      let html = '<table style="width:100%; border-collapse:collapse;">';
+      html += '<tr><th style="text-align:left; font-size:0.75rem; color:var(--text-muted); padding:4px 8px;">Dimension</th>';
+      teacherIds.forEach((tid, i) => {
+        const t = teachers.find(t => t.teacherId === tid);
+        const c = nameColor(t?.teacherName || tid);
+        html += `<th style="text-align:center; font-size:0.7rem; color:var(--text-muted); padding:4px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <div style="width:20px; height:20px; border-radius:50%; background:${c}; display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:#fff; font-weight:700;">${(t?.teacherName || '?')[0]}</div>
+          </div>
+        </th>`;
+      });
+      html += '</tr>';
+
+      dims.forEach(dim => {
+        const isFlagged = flagged.includes(dim);
+        html += `<tr><td style="padding:8px; font-size:0.8rem; color:${isFlagged ? '#fca5a5' : 'var(--text-secondary)'};">${dim}</td>`;
+        teacherIds.forEach(tid => {
+          const val = grid[dim]?.[tid];
+          const cls = isFlagged ? 'flagged' : 'agreed';
+          const onclick = isFlagged ? `onclick="openResModal(${questionIndex},'${dim}','${tid}')"` : '';
+          html += `<td style="padding:6px; text-align:center;"><div class="grid-cell ${cls}" ${onclick}>${val ?? '—'}</div></td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</table>';
+      document.getElementById('disagreement-grid').innerHTML = html;
+    }
+
+    function openResModal(qIdx, dim, myTeacherId) {
+      const modal = document.getElementById('resolution-modal');
+      modal.style.display = 'flex';
+      document.getElementById('res-dim-label').textContent = dim;
+      const tid = myTeacherId || teacherId;
+      const myScore = teachers.find(t => t.teacherId === tid)?.teacherId;
+      document.getElementById('res-dissent-text').dataset.qIdx = qIdx;
+      document.getElementById('res-dissent-text').dataset.dim = dim;
+      document.getElementById('res-dissent-text').dataset.myScore = '';
+      document.getElementById('res-decision-select').value = '';
+      document.getElementById('res-dissent-text').style.display = 'none';
+    }
+
+    function closeResModal() {
+      document.getElementById('resolution-modal').style.display = 'none';
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────────
+    function updatePhasePill(phase) {
+      const pill = document.getElementById('status-pill');
+      const map = {
+        'waiting': { text: 'WAITING', cls: 'badge-secondary' },
+        'ai_round': { text: 'AI ROUND', cls: 'badge-indigo' },
+        'teacher_interrupt': { text: 'INTERRUPT', cls: 'badge-orange' },
+        'panel_round': { text: 'PANEL ROUND', cls: 'badge-red' },
+        'scoring': { text: 'SCORING', cls: 'badge-teal' },
+        'closed': { text: 'CLOSED', cls: 'badge-emerald' }
+      };
+      const p = map[phase] || map.waiting;
+      pill.textContent = p.text;
+      pill.className = `badge ${p.cls}`;
+    }
+
+    function loadCurrentQuestion(index, source) {
+      document.getElementById('current-q-source').textContent = source;
+      document.getElementById('current-q-index').textContent = `Question ${index + 1}`;
+      // Load from session questions
+      fetch(`/api/sessions/${roomCode}`).then(r => r.json()).then(session => {
+        if (session.questions?.questions) {
+          const allQ = [...(session.questions.questions.tier1||[]), ...(session.questions.questions.tier2||[]), ...(session.questions.questions.tier3||[])];
+          document.getElementById('current-q-text').textContent = allQ[index] || 'No question available';
+        }
+      });
+    }
+
+    function renderTeachersPanel() {
+      const el = document.getElementById('teachers-panel-list');
+      el.innerHTML = teachers.map(t => `
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; padding:8px; background:var(--bg-elevated); border-radius:10px;">
+          <div class="teacher-color-dot" style="background:${nameColor(t.teacherName)};">${t.teacherName[0]}</div>
+          <div>
+            <div style="font-weight:500; font-size:0.875rem;">${t.teacherName}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">${t.teacherId === teacherId ? 'You' : 'Panelist'}</div>
+          </div>
+          <div style="width:8px; height:8px; border-radius:50%; background:var(--accent-emerald); margin-left:auto;"></div>
+        </div>`).join('');
+    }
+
+    function setupWaveform(stream) {
+      try {
+        audioCtx = new AudioContext();
+        analyser = audioCtx.createAnalyser();
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const canvas = document.getElementById('waveform-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Voice activity detection
+        let wasSilent = true;
+
+        function draw() {
+          requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(data);
+          const avg = data.reduce((a, b) => a + b, 0) / data.length;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          const barW = canvas.width / data.length;
+          for (let i = 0; i < data.length; i++) {
+            const h = (data[i] / 255) * canvas.height;
+            ctx.fillStyle = '#6366F1';
+            ctx.fillRect(i * barW, canvas.height - h, barW - 1, h);
+          }
+
+          // Speaking indicator
+          const speaking = avg > 20;
+          if (speaking !== wasSilent) {
+            wasSilent = speaking;
+            document.getElementById('speaking-badge').style.display = speaking ? 'block' : 'none';
+          }
+        }
+        draw();
+      } catch (e) { console.warn('[waveform] error:', e); }
+    }
+
+    let toastTimeout;
+    function showToast(msg, color) {
+      // Simple banner toast
+      const existing = document.getElementById('toast-banner');
+      if (existing) existing.remove();
+      const div = document.createElement('div');
+      div.id = 'toast-banner';
+      div.style = `position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:${color === 'red' ? 'rgba(239,68,68,0.9)' : color === 'green' ? 'rgba(16,185,129,0.9)' : color === 'orange' ? 'rgba(245,158,11,0.9)' : 'rgba(99,102,241,0.9)'}; color:#fff; padding:10px 20px; border-radius:9999px; font-size:0.875rem; font-weight:500; z-index:999; animation:fadeIn 200ms ease;`;
+      div.textContent = msg;
+      document.body.appendChild(div);
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => div.remove(), 4000);
+    }
+
+    let seconds = 0; let timerInterval;
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        seconds++;
+        const m = String(Math.floor(seconds/60)).padStart(2,'0');
+        const s = String(seconds%60).padStart(2,'0');
+        document.getElementById('timer-label').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    // Check stored auth
+    const stored = sessionStorage.getItem('pdrs_teacher_' + roomCode);
+    if (stored) {
+      const { teacherId: tid, teacherName: tname } = JSON.parse(stored);
+      teacherId = tid; teacherName = tname;
+      document.getElementById('auth-modal').style.display = 'none';
+      document.getElementById('main-ui').style.display = 'block';
+      document.getElementById('room-code-label').textContent = roomCode;
+      initSocket();
+      startTimer();
+    }
+  </script>
+</body>
+</html>

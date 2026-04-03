@@ -1,0 +1,30 @@
+[
+  {
+    "id": "test_student_1774617231322",
+    "name": "Test Student",
+    "year": "Final Year",
+    "branch": "CS",
+    "title": "Test Project",
+    "description": "A test project",
+    "architecture": [],
+    "limitations": "None",
+    "createdAt": "2026-03-27T13:13:51.322Z"
+  },
+  {
+    "id": "riya_desai_1774618823980",
+    "name": "Riya Desai",
+    "year": "Final Year",
+    "branch": "IT",
+    "title": "IoT Home Automation",
+    "description": "Smart home system using ESP32 and MQTT",
+    "architecture": [
+      {
+        "decision": "ESP32 over Arduino",
+        "alternatives": "Arduino Uno, Raspberry Pi Pico",
+        "reason": "Built-in WiFi, low cost, sufficient GPIO"
+      }
+    ],
+    "limitations": "No fallback when WiFi is down",
+    "createdAt": "2026-03-27T13:40:23.980Z"
+  }
+]

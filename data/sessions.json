@@ -1,0 +1,22 @@
+[
+  {
+    "id": "f5b0e2c4-d018-4825-89bc-2d48b529597c",
+    "studentId": "riya_desai_1774618823980",
+    "studentName": "Riya Desai",
+    "projectTitle": "IoT Home Automation",
+    "roomCode": "736AZZ",
+    "teacherInviteUrl": "http://localhost:3000/teacher.html?room=736AZZ",
+    "teacherEmails": [
+      "hod@college.edu"
+    ],
+    "phase": "waiting",
+    "teachers": [],
+    "questions": null,
+    "aiScores": {},
+    "teacherScores": {},
+    "panelQuestions": [],
+    "interruptions": [],
+    "disagreements": [],
+    "createdAt": 1774619713717
+  }
+]

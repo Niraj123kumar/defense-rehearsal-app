@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Questions — PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <script src="nav.js" data-page="questions"></script>
+
+  <main class="main-content">
+    <div class="page-wrapper">
+
+      <div class="page-header">
+        <h1>AI Question Generation</h1>
+        <p>Select a student and generate 10 targeted defense questions via Ollama.</p>
+      </div>
+
+      <div id="msg"></div>
+
+      <!-- Selector -->
+      <div class="card card-static" style="margin-bottom:24px;">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="student-select">Select Student</label>
+          <select id="student-select">
+            <option value="">— Choose a student —</option>
+          </select>
+        </div>
+
+        <div id="student-preview" style="display:none; padding:16px; background:var(--bg-elevated); border-radius:12px; margin-bottom:16px;"></div>
+
+        <button class="btn btn-primary" id="generate-btn">Generate Questions via AI</button>
+      </div>
+
+      <!-- Skeleton Loader -->
+      <div id="skeleton-loader" style="display:none;">
+        <div style="margin-bottom:32px;">
+          <div class="skeleton skeleton-title" style="width:200px; margin-bottom:16px;"></div>
+          <div id="skel-tier1"></div>
+        </div>
+        <div style="margin-bottom:32px;">
+          <div class="skeleton skeleton-title" style="width:200px; margin-bottom:16px;"></div>
+          <div id="skel-tier2"></div>
+        </div>
+        <div style="margin-bottom:32px;">
+          <div class="skeleton skeleton-title" style="width:200px; margin-bottom:16px;"></div>
+          <div id="skel-tier3"></div>
+        </div>
+      </div>
+
+      <!-- Questions Output -->
+      <div id="questions-output" style="display:none;">
+        <div class="card card-static">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+            <div>
+              <h2 style="font-size:1.25rem; margin-bottom:4px;">Generated Questions</h2>
+              <p style="font-size:0.875rem; color:var(--text-muted);" id="q-student-name"></p>
+            </div>
+            <a id="start-defense-btn" class="btn btn-primary btn-sm">Start Defense →</a>
+          </div>
+
+          <!-- Tier 1 -->
+          <div class="tier-section">
+            <div class="tier-header tier-1">
+              <span class="badge badge-blue">Tier 1</span>
+              <h3>Surface Clarity</h3>
+            </div>
+            <div id="tier1-questions"></div>
+          </div>
+
+          <!-- Tier 2 -->
+          <div class="tier-section">
+            <div class="tier-header tier-2">
+              <span class="badge badge-indigo">Tier 2</span>
+              <h3>Design Tradeoffs</h3>
+            </div>
+            <div id="tier2-questions"></div>
+          </div>
+
+          <!-- Tier 3 -->
+          <div class="tier-section">
+            <div class="tier-header tier-3">
+              <span class="badge badge-orange">Tier 3</span>
+              <h3>Failure Modes</h3>
+            </div>
+            <div id="tier3-questions"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <rect x="10" y="10" width="60" height="60" rx="8" stroke-opacity="0.3"/>
+          <path d="M25 30h30M25 40h20M25 50h25" stroke-opacity="0.5" stroke-linecap="round"/>
+          <circle cx="55" cy="55" r="12" stroke-opacity="0.6"/>
+          <path d="M50 55l4 4 7-7" stroke-opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>No questions generated yet</h3>
+        <p>Select a student above and click "Generate Questions via AI" to create a personalized question set.</p>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let currentStudentId = null;
+
+    function showSkeletons(show) {
+      document.getElementById('skeleton-loader').style.display = show ? 'block' : 'none';
+      document.getElementById('questions-output').style.display = 'none';
+      document.getElementById('empty-state').style.display = show ? 'none' : 'flex';
+      if (show) {
+        // Populate skeleton cards
+        ['skel-tier1', 'skel-tier2', 'skel-tier3'].forEach(id => {
+          const el = document.getElementById(id);
+          el.innerHTML = '';
+          const count = id === 'skel-tier1' ? 2 : id === 'skel-tier2' ? 5 : 3;
+          for (let i = 0; i < count; i++) {
+            const block = document.createElement('div');
+            block.className = 'skeleton skeleton-block';
+            el.appendChild(block);
+          }
+        });
+      }
+    }
+
+    async function loadStudents() {
+      try {
+        const res = await fetch('/api/students');
+        const students = await res.json();
+        const select = document.getElementById('student-select');
+        students.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.name} — ${s.title}`;
+          select.appendChild(opt);
+        });
+        if (students.length === 0) {
+          document.getElementById('empty-state').style.display = 'flex';
+        }
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load students: ${e.message}</div>`;
+      }
+    }
+
+    document.getElementById('student-select').addEventListener('change', async (e) => {
+      currentStudentId = e.target.value;
+      const preview = document.getElementById('student-preview');
+      const output = document.getElementById('questions-output');
+      const empty = document.getElementById('empty-state');
+
+      if (!currentStudentId) {
+        preview.style.display = 'none';
+        output.style.display = 'none';
+        empty.style.display = 'flex';
+        return;
+      }
+
+      try {
+        const [studentRes, qRes] = await Promise.all([
+          fetch(`/api/students/${currentStudentId}`),
+          fetch(`/api/questions/${currentStudentId}`).catch(() => null)
+        ]);
+        const student = await studentRes.json();
+        const questions = qRes && qRes.ok ? await qRes.json() : null;
+
+        preview.style.display = 'block';
+        const status = questions
+          ? '<span style="color:var(--accent-emerald);">● Questions ready</span>'
+          : '<span style="color:var(--accent-orange);">● No questions yet</span>';
+        preview.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div style="font-weight:600; margin-bottom:4px;">${student.name}</div>
+              <div style="font-size:0.8125rem; color:var(--text-muted);">${student.title} · ${student.branch || ''} ${student.year ? '· ' + student.year : ''}</div>
+            </div>
+            ${status}
+          </div>
+        `;
+
+        if (questions) {
+          renderQuestions(questions.questions, student.name, student.id);
+          empty.style.display = 'none';
+        } else {
+          output.style.display = 'none';
+          empty.style.display = 'flex';
+        }
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Error: ${e.message}</div>`;
+      }
+    });
+
+    function renderQuestions(questions, studentName, studentId) {
+      const output = document.getElementById('questions-output');
+      output.style.display = 'block';
+      document.getElementById('q-student-name').textContent = `Questions for ${studentName}`;
+      document.getElementById('start-defense-btn').href = `defense.html?student=${studentId}`;
+
+      ['tier1', 'tier2', 'tier3'].forEach(tier => {
+        const el = document.getElementById(`${tier}-questions`);
+        el.innerHTML = '';
+        const tierNum = tier.replace('tier', '');
+        (questions[tier] || []).forEach(q => {
+          const div = document.createElement('div');
+          div.className = `question-card tier-${tierNum}`;
+          div.innerHTML = `
+            <span class="q-text">${q}</span>
+            <span class="q-badge badge badge-${tierNum === '1' ? 'blue' : tierNum === '2' ? 'indigo' : 'orange'}">T${tierNum}</span>
+          `;
+          el.appendChild(div);
+        });
+      });
+    }
+
+    document.getElementById('generate-btn').addEventListener('click', async () => {
+      if (!currentStudentId) {
+        document.getElementById('msg').innerHTML = '<div class="msg-error">Please select a student first.</div>';
+        return;
+      }
+
+      const btn = document.getElementById('generate-btn');
+      const msg = document.getElementById('msg');
+      btn.disabled = true;
+      msg.innerHTML = '';
+      showSkeletons(true);
+
+      try {
+        const res = await fetch(`/api/generate-questions/${currentStudentId}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Generation failed');
+
+        msg.innerHTML = '<div class="msg-success">✓ Questions generated successfully!</div>';
+        showSkeletons(false);
+        renderQuestions(data.questions);
+      } catch (e) {
+        showSkeletons(false);
+        document.getElementById('empty-state').style.display = 'flex';
+        msg.innerHTML = `<div class="msg-error">${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    loadStudents();
+  </script>
+</body>
+</html>

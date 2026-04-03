@@ -1,0 +1,263 @@
+/**
+ * accessibility-modes.css
+ * Three neurodiversity modes via CSS custom properties.
+ * Applied on <body> as class toggles. Persisted in localStorage.
+ *
+ * Modes:
+ *   .focus-mode      — hides non-essential UI, maximizes content area
+ *   .dyslexia-mode  — OpenDyslexic-style font + increased spacing
+ *   .low-stim-mode  — grayscale + all animations disabled
+ *
+ * Also includes: .light-mode (inverted from default dark)
+ */
+
+/* ─── Default (Dark) — already set in styles.css, but declared here for override ─── */
+:root {
+  /* Tokens referenced by other modes */
+  --transition-default: 200ms ease;
+  --spacing-multiplier: 1;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --filter-effects: none();
+  --opacity-reduction: 1;
+}
+
+/* ─── Light Mode ─── */
+body.light-mode {
+  --bg-base: #F8FAFC;
+  --bg-elevated: #FFFFFF;
+  --bg-card: rgba(0, 0, 0, 0.04);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-card: rgba(0, 0, 0, 0.12);
+}
+
+/* ─── Focus Mode ───
+   Hides: nav background, feature cards, decorative elements.
+   Keeps: main content, forms, question cards, scores.
+   Use case: student doing a live defense session — zero distractions.
+*/
+body.focus-mode .navbar {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-bottom: none !important;
+  position: static !important;
+}
+
+body.focus-mode .feature-card,
+body.focus-mode .feature-icon,
+body.focus-mode .empty-state svg,
+body.focus-mode .empty-state p,
+body.focus-mode .btn-secondary,
+body.focus-mode .subtitle,
+body.focus-mode .page-header p,
+body.focus-mode .hero-actions,
+body.focus-mode .hero::before,
+body.focus-mode nav .navbar-links,
+body.focus-mode .metric-card {
+  display: none !important;
+}
+
+body.focus-mode {
+  --spacing-multiplier: 1.2;
+}
+
+body.focus-mode .page-wrapper {
+  max-width: 800px !important;
+}
+
+body.focus-mode .card {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: var(--sp-2) !important;
+}
+
+body.focus-mode .question-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+body.focus-mode .btn-primary {
+  box-shadow: none !important;
+}
+
+body.focus-mode .page-header {
+  margin-bottom: var(--sp-2) !important;
+}
+
+body.focus-mode .hero {
+  padding: var(--sp-3) 0 !important;
+}
+
+body.focus-mode .hero h1 {
+  font-size: 1.75rem !important;
+}
+
+body.focus-mode .metric-grid {
+  display: none !important;
+}
+
+/* ─── Dyslexia Mode ───
+   Uses OpenDyslexic font (loaded from CDN fallback).
+   Increases line-height, letter-spacing, word-spacing.
+   Bottom heavier letters to reduce letter confusion.
+*/
+body.dyslexia-mode {
+  --font-body: 'OpenDyslexic', 'Space Grotesk', sans-serif;
+}
+
+body.dyslexia-mode,
+body.dyslexia-mode * {
+  font-family: var(--font-body) !important;
+  line-height: 1.9 !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.1em !important;
+}
+
+body.dyslexia-mode h1 { line-height: 1.4 !important; letter-spacing: 0.02em !important; }
+body.dyslexia-mode h2 { line-height: 1.5 !important; }
+body.dyslexia-mode p  { line-height: 2.1 !important; }
+
+body.dyslexia-mode input,
+body.dyslexia-mode textarea,
+body.dyslexia-mode select {
+  line-height: 1.8 !important;
+  letter-spacing: 0.03em !important;
+}
+
+body.dyslexia-mode .card {
+  border-radius: 8px !important;
+}
+
+body.dyslexia-mode .question-card {
+  border-left-width: 4px !important;
+}
+
+/* OpenDyslexic font — loaded conditionally */
+@import url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/regular.min.css');
+
+/* ─── Low Stimulation Mode ───
+   Grayscale filter on entire page.
+   All CSS transitions / animations disabled.
+   Reduces visual noise to near-zero.
+*/
+body.low-stim-mode {
+  filter: grayscale(100%) !important;
+  --filter-effects: grayscale(100%);
+}
+
+body.low-stim-mode *,
+body.low-stim-mode *::before,
+body.low-stim-mode *::after {
+  /* Kill ALL transitions and animations */
+  transition: none !important;
+  animation: none !important;
+  animation-duration: 0ms !important;
+  animation-delay: 0ms !important;
+
+  /* Kill hover effects that create visual noise */
+  transform: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body.low-stim-mode .navbar {
+  background: #1a1a1a !important;
+}
+
+body.low-stim-mode .card {
+  border-color: #333 !important;
+  background: #1a1a1a !important;
+}
+
+body.low-stim-mode .badge {
+  filter: none !important; /* Keep badges visible */
+}
+
+body.low-stim-mode .btn-primary {
+  background: #555 !important;
+  color: #fff !important;
+}
+
+body.low-stim-mode .accent-glow,
+body.low-stim-mode .pulse-ring,
+body.low-stim-mode .interrupt-active {
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+body.low-stim-mode .success-checkmark circle,
+body.low-stim-mode .success-checkmark path {
+  animation: none !important;
+  stroke-dashoffset: 0 !important;
+}
+
+/* ─── Mode Indicator Badge ───
+   Small persistent indicator in bottom-right showing active mode.
+   Rendered by accessibility-bar.js.
+*/
+#a11y-mode-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9998;
+  background: rgba(15, 15, 25, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: #6366F1;
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+#a11y-mode-indicator.visible { display: flex; }
+
+#a11y-mode-indicator .mode-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6366F1;
+  flex-shrink: 0;
+}
+
+body.focus-mode #a11y-mode-indicator .mode-dot { background: #F59E0B; }
+body.dyslexia-mode #a11y-mode-indicator .mode-dot { background: #10B981; }
+body.low-stim-mode #a11y-mode-indicator .mode-dot { background: #64748B; }
+
+/* ─── Reduced Motion (system-level) — overrides everything ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ─── High Contrast Mode (system-level) ─── */
+@media (prefers-contrast: more) {
+  :root {
+    --border-subtle: rgba(255,255,255,0.25);
+    --border-card: rgba(255,255,255,0.4);
+    --text-secondary: #CBD5E1;
+  }
+}
+
+/* ─── Print: strip everything decorative ─── */
+@media print {
+  .navbar, .btn-group, nav, .no-print,
+  .feature-card, .hero-actions, .metric-grid { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .card { background: white !important; border: 1px solid #ccc !important; }
+}

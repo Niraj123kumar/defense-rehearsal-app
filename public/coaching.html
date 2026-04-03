@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coaching Packet — PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <script src="nav.js" data-page="coaching"></script>
+
+  <main class="main-content">
+    <div class="page-wrapper">
+
+      <div class="page-header">
+        <h1>Coaching Packet</h1>
+        <p>Generate targeted practice questions for your weakest dimensions.</p>
+      </div>
+
+      <div id="msg"></div>
+
+      <!-- Selector -->
+      <div class="card card-static" style="margin-bottom:24px;">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="student-select">Select Student</label>
+          <select id="student-select">
+            <option value="">— Choose a student —</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="generate-btn">Generate Coaching Packet</button>
+      </div>
+
+      <!-- Skeleton -->
+      <div id="skeleton-loader" style="display:none;">
+        <div class="weak-cards">
+          <div class="skeleton" style="height:120px; border-radius:16px;"></div>
+          <div class="skeleton" style="height:120px; border-radius:16px;"></div>
+        </div>
+        <div class="skeleton skeleton-block" style="height:200px; margin-bottom:16px;"></div>
+      </div>
+
+      <!-- Coaching Output -->
+      <div id="coaching-output" style="display:none;">
+
+        <!-- Weak Dimensions -->
+        <div id="weak-section">
+          <h2 style="font-size:1.125rem; margin-bottom:16px;">🎯 Focus Areas</h2>
+          <div class="weak-cards">
+            <div class="weak-card" id="weak-0"></div>
+            <div class="weak-card" id="weak-1"></div>
+          </div>
+        </div>
+
+        <!-- Practice Questions -->
+        <div class="card card-static" style="margin-top:24px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+            <h2 style="font-size:1.125rem;">📋 Practice Questions</h2>
+            <button class="btn btn-secondary btn-sm print-btn" onclick="window.print()">🖨️ Print</button>
+          </div>
+          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:24px;" id="coaching-meta"></p>
+          <div id="coaching-questions"></div>
+        </div>
+
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="40" cy="40" r="30" stroke-opacity="0.3"/>
+          <path d="M40 24v20M40 52v4" stroke-opacity="0.6" stroke-linecap="round"/>
+          <path d="M28 64l24-24" stroke-opacity="0.2" stroke-linecap="round"/>
+        </svg>
+        <h3>No coaching data yet</h3>
+        <p>Run at least one defense session for a student, then come back here for AI-generated coaching questions.</p>
+        <a href="defense.html" class="btn btn-primary btn-sm">Run Defense Session →</a>
+      </div>
+
+    </div>
+  </main>
+
+  <style>
+    @media print {
+      .weak-cards { grid-template-columns: 1fr 1fr !important; }
+    }
+  </style>
+
+  <script>
+    const dimDescriptions = {
+      clarity: 'Clarity — Ability to explain concepts clearly and jargon-free.',
+      reasoning: 'Logical Reasoning — Structured thinking and clear argumentation.',
+      depth: 'Technical Depth — Understanding of internals, not just surface-level knowledge.',
+      confidence: 'Confidence — Delivery, composure, and self-assurance under questioning.'
+    };
+
+    const dimScoreMeaning = {
+      clarity: { 1: 'Cannot explain basic concepts.', 2: 'Explains partially with gaps.', 3: 'Correct but surface-level.', 4: 'Clear with good structure.', 5: 'Precise, metric-driven explanation.' },
+      reasoning: { 1: 'No logical structure.', 2: 'Some logic, many gaps.', 3: 'Mostly correct but shallow.', 4: 'Structured and tradeoff-aware.', 5: 'Precise with edge cases.' },
+      depth: { 1: 'Cannot discuss internals.', 2: 'Limited internal knowledge.', 3: 'Correct but not deep.', 4: 'Good internals understanding.', 5: 'Expert-level detail.' },
+      confidence: { 1: 'Very nervous, cannot answer.', 2: 'Uncertain, hesitant.', 3: 'Average composure.', 4: 'Confident delivery.', 5: 'Composed, handles pressure well.' }
+    };
+
+    async function loadStudents() {
+      try {
+        const res = await fetch('/api/students');
+        const students = await res.json();
+        const select = document.getElementById('student-select');
+        students.forEach(s => {
+          if (s.baseline) {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.name} — ${s.title}`;
+            select.appendChild(opt);
+          }
+        });
+        if (students.filter(s => s.baseline).length === 0) {
+          document.getElementById('empty-state').style.display = 'flex';
+        }
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load: ${e.message}</div>`;
+      }
+    }
+
+    document.getElementById('student-select').addEventListener('change', (e) => {
+      if (!e.target.value) {
+        document.getElementById('coaching-output').style.display = 'none';
+      }
+    });
+
+    function showSkeleton(show) {
+      document.getElementById('skeleton-loader').style.display = show ? 'block' : 'none';
+      document.getElementById('coaching-output').style.display = 'none';
+      if (!show) document.getElementById('empty-state').style.display = 'none';
+    }
+
+    document.getElementById('generate-btn').addEventListener('click', async () => {
+      const studentId = document.getElementById('student-select').value;
+      if (!studentId) {
+        document.getElementById('msg').innerHTML = '<div class="msg-error">Please select a student.</div>';
+        return;
+      }
+
+      const btn = document.getElementById('generate-btn');
+      const msg = document.getElementById('msg');
+      btn.disabled = true;
+      msg.innerHTML = '';
+      showSkeleton(true);
+
+      try {
+        const res = await fetch(`/api/coaching/${studentId}`, { method: 'POST' });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Failed to generate coaching packet');
+
+        renderCoaching(data.coaching);
+        showSkeleton(false);
+        document.getElementById('coaching-output').style.display = 'block';
+        msg.innerHTML = '<div class="msg-success">✓ Coaching packet generated!</div>';
+      } catch (e) {
+        showSkeleton(false);
+        document.getElementById('empty-state').style.display = 'flex';
+        msg.innerHTML = `<div class="msg-error">${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    function renderCoaching(coaching) {
+      // Weak dimension cards
+      coaching.weakDimensions.forEach((dim, i) => {
+        const card = document.getElementById(`weak-${i}`);
+        card.innerHTML = `
+          <h3>${dimDescriptions[dim]}</h3>
+          <p style="margin-top:8px; font-size:0.8125rem;">${dimScoreMeaning[dim][3]}</p>
+        `;
+      });
+
+      // Meta
+      document.getElementById('coaching-meta').textContent =
+        `Generated: ${new Date().toLocaleString()} — focus on these 2 dimensions before your next session.`;
+
+      // Practice questions grouped by dimension
+      const dims = coaching.weakDimensions;
+      let html = '';
+
+      dims.forEach(dim => {
+        html += `
+          <div style="margin-bottom:32px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+              <span class="badge badge-red">${dim.toUpperCase()}</span>
+              <span style="font-size:0.8125rem; color:var(--text-muted);">${dimDescriptions[dim]}</span>
+            </div>`;
+        (coaching.questions[dim] || []).forEach((q, qi) => {
+          html += `
+            <div class="question-card" style="border-left-color:var(--accent-red);">
+              <span class="q-text">${qi + 1}. ${q}</span>
+            </div>`;
+        });
+        html += '</div>';
+      });
+
+      document.getElementById('coaching-questions').innerHTML = html;
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>

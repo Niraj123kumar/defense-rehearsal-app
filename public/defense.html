@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defense Session — PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <script src="nav.js" data-page="defense"></script>
+
+  <main class="main-content">
+    <div class="page-wrapper">
+
+      <!-- Setup -->
+      <div id="setup-view">
+        <div class="page-header">
+          <h1>Defense Session</h1>
+          <p>Select a student and begin the evaluation.</p>
+        </div>
+
+        <div id="msg"></div>
+
+        <div class="card card-static" style="max-width:560px;">
+          <div class="form-group">
+            <label for="student-select">Select Student</label>
+            <select id="student-select">
+              <option value="">— Choose a student —</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="start-btn">Start Session</button>
+        </div>
+      </div>
+
+      <!-- Session View -->
+      <div id="session-view" style="display:none; max-width:720px; margin:0 auto;">
+
+        <!-- Progress Header -->
+        <div style="margin-bottom:32px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <span class="badge badge-indigo" id="q-counter-label">Question 1 of 10</span>
+            <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);" id="tier-badge"></span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-fill" style="width:10%;"></div>
+          </div>
+        </div>
+
+        <!-- Question Card -->
+        <div class="session-question">
+          <div class="card card-static" style="padding:32px; margin-bottom:24px; text-align:left;">
+            <div id="q-tier-badge" class="badge" style="margin-bottom:16px;"></div>
+            <p id="q-text" style="font-size:1.375rem; line-height:1.5; font-weight:500;"></p>
+          </div>
+
+          <!-- Response -->
+          <div class="session-response">
+            <label for="response-input" style="font-size:0.875rem; font-weight:500; color:var(--text-secondary); margin-bottom:8px; display:block;">Student's Verbal Response</label>
+            <textarea id="response-input" placeholder="Type the student's response here..."></textarea>
+          </div>
+
+          <!-- Scoring -->
+          <div class="card card-static" style="padding:24px; margin-top:24px;">
+            <h3 style="font-size:1rem; margin-bottom:16px; color:var(--text-secondary);">Score This Response</h3>
+
+            <div class="score-dim-row">
+              <span class="score-label">Clarity</span>
+              <div class="score-dots" data-dim="clarity" role="radiogroup" aria-label="Clarity score">
+                ${[1,2,3,4,5].map(n => `<button class="score-dot" data-val="${n}" aria-label="Score ${n}">${n}</button>`).join('')}
+              </div>
+              <span class="score-desc" id="desc-clarity" style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;"></span>
+            </div>
+
+            <div class="score-dim-row">
+              <span class="score-label">Logical Reasoning</span>
+              <div class="score-dots" data-dim="reasoning" role="radiogroup" aria-label="Reasoning score">
+                ${[1,2,3,4,5].map(n => `<button class="score-dot" data-val="${n}" aria-label="Score ${n}">${n}</button>`).join('')}
+              </div>
+              <span class="score-desc" id="desc-reasoning" style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;"></span>
+            </div>
+
+            <div class="score-dim-row">
+              <span class="score-label">Technical Depth</span>
+              <div class="score-dots" data-dim="depth" role="radiogroup" aria-label="Depth score">
+                ${[1,2,3,4,5].map(n => `<button class="score-dot" data-val="${n}" aria-label="Score ${n}">${n}</button>`).join('')}
+              </div>
+              <span class="score-desc" id="desc-depth" style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;"></span>
+            </div>
+
+            <div class="score-dim-row">
+              <span class="score-label">Confidence</span>
+              <div class="score-dots" data-dim="confidence" role="radiogroup" aria-label="Confidence score">
+                ${[1,2,3,4,5].map(n => `<button class="score-dot" data-val="${n}" aria-label="Score ${n}">${n}</button>`).join('')}
+              </div>
+              <span class="score-desc" id="desc-confidence" style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+          <button class="btn btn-primary" id="next-btn">Next Question →</button>
+          <button class="btn btn-primary" id="finish-btn" style="display:none;">Finish & Submit ✓</button>
+        </div>
+
+      </div>
+
+      <!-- Complete View -->
+      <div id="complete-view" style="display:none; max-width:560px; margin:0 auto; text-align:center; padding:64px 0;">
+        <div style="margin-bottom:24px;">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="36" stroke="var(--accent-emerald)" stroke-width="2" stroke-dasharray="240" stroke-dashoffset="0" style="animation:draw-circle 600ms ease 100ms both;"/>
+            <path d="M24 42 L34 52 L56 30" stroke="var(--accent-emerald)" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="60" stroke-dashoffset="0" style="animation:draw-check 400ms ease 600ms both;"/>
+          </svg>
+        </div>
+        <h2 style="margin-bottom:8px;">Session Complete!</h2>
+        <p style="color:var(--text-muted); margin-bottom:32px;">Scores saved successfully.</p>
+        <div id="session-summary" style="text-align:left; margin-bottom:32px;"></div>
+        <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+          <a href="dashboard.html" class="btn btn-primary">View Dashboard →</a>
+          <a href="coaching.html" class="btn btn-secondary">Get Coaching →</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <style>
+    @keyframes draw-circle { from { stroke-dashoffset: 240; } to { stroke-dashoffset: 0; } }
+    @keyframes draw-check { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+  </style>
+
+  <script>
+    let currentStudentId = null;
+    let allQuestions = [];
+    let currentIndex = 0;
+    let responses = [];
+    let selectedScores = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
+
+    const scoreDesc = {
+      1: 'Cannot explain / wrong',
+      2: 'Partial, gaps visible',
+      3: 'Correct but shallow',
+      4: 'Clear, tradeoff-aware',
+      5: 'Precise with metrics'
+    };
+
+    const tierColors = { 1: { badge: 'badge-blue', label: 'Surface Clarity' }, 2: { badge: 'badge-indigo', label: 'Design Tradeoffs' }, 3: { badge: 'badge-orange', label: 'Failure Modes' } };
+
+    async function loadStudents() {
+      try {
+        const res = await fetch('/api/students');
+        const students = await res.json();
+        const select = document.getElementById('student-select');
+        students.forEach(s => {
+          if (s.questionsGenerated) {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.name} — ${s.title}`;
+            select.appendChild(opt);
+          }
+        });
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load students.</div>`;
+      }
+    }
+
+    // Score dot click
+    document.querySelectorAll('.score-dots').forEach(group => {
+      group.addEventListener('click', (e) => {
+        const dot = e.target.closest('.score-dot');
+        if (!dot) return;
+        const dim = group.dataset.dim;
+        const val = parseInt(dot.dataset.val);
+        selectedScores[dim] = val;
+
+        group.querySelectorAll('.score-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+        document.getElementById(`desc-${dim}`).textContent = scoreDesc[val];
+      });
+    });
+
+    // Keyboard shortcuts 1-5 for scoring
+    let focusedDim = 'clarity';
+    document.addEventListener('keydown', (e) => {
+      if (['1','2','3','4','5'].includes(e.key) && document.getElementById('session-view').style.display !== 'none') {
+        const val = parseInt(e.key);
+        selectedScores[focusedDim] = val;
+        const group = document.querySelector(`.score-dots[data-dim="${focusedDim}"]`);
+        group.querySelectorAll('.score-dot').forEach(d => d.classList.remove('selected'));
+        group.querySelector(`[data-val="${val}"]`).classList.add('selected');
+        document.getElementById(`desc-${focusedDim}`).textContent = scoreDesc[val];
+      }
+    });
+
+    document.getElementById('start-btn').addEventListener('click', async () => {
+      const studentId = document.getElementById('student-select').value;
+      if (!studentId) {
+        document.getElementById('msg').innerHTML = '<div class="msg-error">Please select a student.</div>';
+        return;
+      }
+
+      try {
+        const [studentRes, qRes] = await Promise.all([
+          fetch(`/api/students/${studentId}`),
+          fetch(`/api/questions/${studentId}`)
+        ]);
+        if (!qRes.ok) throw new Error('No questions for this student. Generate questions first.');
+
+        const qData = await qRes.json();
+        currentStudentId = studentId;
+        allQuestions = [
+          ...qData.questions.tier1.map(q => ({ tier: 1, text: q })),
+          ...qData.questions.tier2.map(q => ({ tier: 2, text: q })),
+          ...qData.questions.tier3.map(q => ({ tier: 3, text: q }))
+        ];
+        responses = [];
+        currentIndex = 0;
+        selectedScores = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
+
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('session-view').style.display = 'block';
+        document.getElementById('complete-view').style.display = 'none';
+        document.getElementById('msg').innerHTML = '';
+        showQuestion();
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">${e.message}</div>`;
+      }
+    });
+
+    function showQuestion() {
+      const q = allQuestions[currentIndex];
+      const progress = ((currentIndex + 1) / allQuestions.length) * 100;
+
+      document.getElementById('q-counter-label').textContent = `Question ${currentIndex + 1} of ${allQuestions.length}`;
+      document.getElementById('progress-fill').style.width = `${progress}%`;
+      document.getElementById('tier-badge').textContent = tierColors[q.tier].label;
+
+      const badge = document.getElementById('q-tier-badge');
+      badge.className = `badge ${tierColors[q.tier].badge}`;
+      badge.textContent = `Tier ${q.tier}`;
+
+      document.getElementById('q-text').textContent = q.text;
+      document.getElementById('response-input').value = '';
+      document.getElementById('response-input').focus();
+
+      // Reset scores
+      selectedScores = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
+      document.querySelectorAll('.score-dot').forEach(d => d.classList.remove('selected'));
+      document.querySelectorAll('.score-desc').forEach(d => d.textContent = '');
+
+      const isLast = currentIndex === allQuestions.length - 1;
+      document.getElementById('next-btn').style.display = isLast ? 'none' : 'inline-flex';
+      document.getElementById('finish-btn').style.display = isLast ? 'inline-flex' : 'none';
+    }
+
+    function avgScore(scores) {
+      const vals = Object.values(scores).filter(v => v > 0);
+      return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2) : '—';
+    }
+
+    function submitResponse() {
+      const scores = { ...selectedScores };
+      responses.push({
+        questionIndex: currentIndex,
+        question: allQuestions[currentIndex].text,
+        tier: allQuestions[currentIndex].tier,
+        response: document.getElementById('response-input').value.trim(),
+        scores
+      });
+
+      currentIndex++;
+      if (currentIndex >= allQuestions.length) {
+        finishSession();
+      } else {
+        showQuestion();
+      }
+    }
+
+    document.getElementById('next-btn').addEventListener('click', submitResponse);
+    document.getElementById('finish-btn').addEventListener('click', submitResponse);
+
+    async function finishSession() {
+      document.getElementById('msg').innerHTML = '<div class="msg-loading">Saving scores...</div>';
+      try {
+        const res = await fetch('/api/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId: currentStudentId, responses })
+        });
+        if (!res.ok) throw new Error('Failed to save');
+        const data = await res.json();
+
+        const last = responses[responses.length - 1].scores;
+        const dimLabels = { clarity: 'Clarity', reasoning: 'Logical Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
+
+        let summary = `<div class="card card-static"><h3 style="margin-bottom:16px;">Session ${data.session} Summary</h3>`;
+        summary += '<table class="data-table"><thead><tr><th>Dimension</th><th>Score</th></tr></thead><tbody>';
+        Object.keys(dimLabels).forEach(d => {
+          summary += `<tr><td>${dimLabels[d]}</td><td><span class="badge badge-indigo" style="font-size:0.875rem; padding:4px 12px;">${last[d]}/5</span></td></tr>`;
+        });
+        summary += `</tbody></table>`;
+        summary += `<div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border-subtle); font-family:var(--font-mono); font-size:1.25rem; font-weight:700;">Overall Avg: <span style="color:var(--accent-indigo);">${avgScore(last)}/5</span></div>`;
+        summary += '</div>';
+
+        document.getElementById('session-summary').innerHTML = summary;
+        document.getElementById('session-view').style.display = 'none';
+        document.getElementById('complete-view').style.display = 'block';
+        document.getElementById('msg').innerHTML = '';
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Error: ${e.message}</div>`;
+      }
+    }
+
+    // Auto-start from ?student= param
+    const params = new URLSearchParams(window.location.search);
+    const studentParam = params.get('student');
+    if (studentParam) {
+      setTimeout(() => {
+        document.getElementById('student-select').value = studentParam;
+        document.getElementById('start-btn').click();
+      }, 400);
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>

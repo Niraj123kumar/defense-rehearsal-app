@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Onboarding — PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <script src="nav.js" data-page="onboarding"></script>
+
+  <main class="main-content">
+    <div class="page-wrapper">
+
+      <div class="page-header">
+        <h1>Student Onboarding</h1>
+        <p>Register a student and capture their project details.</p>
+      </div>
+
+      <div id="msg"></div>
+
+      <!-- Step Indicator -->
+      <div class="step-indicator" id="step-indicator">
+        <div class="step-item">
+          <div class="step-circle active" id="step-circle-1">1</div>
+          <span class="step-label active" id="step-label-1">Basic Info</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item">
+          <div class="step-circle inactive" id="step-circle-2">2</div>
+          <span class="step-label" id="step-label-2">Architecture</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item">
+          <div class="step-circle inactive" id="step-circle-3">3</div>
+          <span class="step-label" id="step-label-3">Review</span>
+        </div>
+      </div>
+
+      <div class="card card-static">
+
+        <!-- Step 1: Basic Info -->
+        <div class="form-step active" id="step-1">
+          <h2 style="margin-bottom:24px; font-size:1.25rem;">Basic Information</h2>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label for="name">Student Name *</label>
+              <input type="text" id="name" placeholder="e.g. Priya Sharma" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="year">Year</label>
+              <input type="text" id="year" placeholder="e.g. Final Year" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="branch">Branch</label>
+              <input type="text" id="branch" placeholder="e.g. Computer Science" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="title">Project Title *</label>
+              <input type="text" id="title" placeholder="e.g. Real-time Chat API" autocomplete="off">
+            </div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" id="step1-next">Next: Architecture →</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Architecture Decisions -->
+        <div class="form-step" id="step-2">
+          <h2 style="margin-bottom:8px; font-size:1.25rem;">Architecture Decisions</h2>
+          <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:24px;">Document up to 3 key decisions — what you chose, why, and what alternatives existed.</p>
+
+          <div id="arch-container">
+            <div class="arch-item glass-panel" style="padding:20px; margin-bottom:16px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <h4 style="color:var(--accent-indigo); font-size:0.875rem;">Decision 1</h4>
+              </div>
+              <div class="form-group">
+                <label>Decision Made</label>
+                <input type="text" class="arch-decision" placeholder="e.g. Used PostgreSQL over MongoDB" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label>Alternatives Considered</label>
+                <input type="text" class="arch-alternatives" placeholder="e.g. MongoDB, MySQL, SQLite" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label>Reason Chosen</label>
+                <textarea class="arch-reason" rows="2" placeholder="e.g. ACID compliance required for financial transactions..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" id="add-arch-btn" style="margin-bottom:24px;">+ Add Another Decision</button>
+
+          <div class="form-group">
+            <label for="limitations">Known Limitations</label>
+            <textarea id="limitations" rows="3" placeholder="What does your system NOT handle well? Be honest — this helps generate better questions."></textarea>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="step2-back">← Back</button>
+            <button class="btn btn-primary" id="step2-next">Next: Review →</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Review -->
+        <div class="form-step" id="step-3">
+          <h2 style="margin-bottom:8px; font-size:1.25rem;">Review & Submit</h2>
+          <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:24px;">Check everything looks good before submitting.</p>
+
+          <div id="review-summary" style="display:grid; gap:16px;"></div>
+
+          <div class="form-group" style="margin-top:24px;">
+            <label for="description">Project Description</label>
+            <textarea id="description" rows="3" placeholder="Brief overview of what the project does and why it matters..."></textarea>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="step3-back">← Back</button>
+            <button class="btn btn-primary" id="submit-btn">Submit Student ✓</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Success Overlay -->
+  <div class="success-overlay" id="success-overlay">
+    <svg class="success-checkmark" viewBox="0 0 80 80" aria-label="Success">
+      <circle cx="40" cy="40" r="36"/>
+      <path d="M24 42 L34 52 L56 30" />
+    </svg>
+    <h2 style="margin-bottom:8px;">Student Registered!</h2>
+    <p style="color:var(--text-muted); margin-bottom:32px;" id="success-student-name"></p>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;">
+      <a href="questions.html" class="btn btn-primary">Generate Questions →</a>
+      <button class="btn btn-secondary" onclick="resetForm()">Register Another</button>
+    </div>
+  </div>
+
+  <script>
+    let archCount = 1;
+    let currentStep = 1;
+
+    function setStep(n) {
+      currentStep = n;
+      document.querySelectorAll('.form-step').forEach(el => el.classList.remove('active'));
+      document.getElementById(`step-${n}`).classList.add('active');
+
+      for (let i = 1; i <= 3; i++) {
+        const circle = document.getElementById(`step-circle-${i}`);
+        const label = document.getElementById(`step-label-${i}`);
+        circle.className = 'step-circle';
+        label.className = 'step-label';
+        if (i < n) { circle.classList.add('done'); circle.textContent = '✓'; label.classList.add('active'); }
+        else if (i === n) { circle.classList.add('active'); label.classList.add('active'); }
+        else { circle.classList.add('inactive'); }
+      }
+
+      if (n === 3) buildReview();
+    }
+
+    function buildReview() {
+      const summary = document.getElementById('review-summary');
+      const name = document.getElementById('name').value.trim();
+      const title = document.getElementById('title').value.trim();
+      const year = document.getElementById('year').value.trim();
+      const branch = document.getElementById('branch').value.trim();
+      const limitations = document.getElementById('limitations').value.trim();
+
+      const archItems = document.querySelectorAll('.arch-item');
+      let archHtml = '';
+      archItems.forEach((item, i) => {
+        const d = item.querySelector('.arch-decision').value.trim();
+        if (d) {
+          archHtml += `
+            <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:16px;">
+              <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:8px;">DECISION ${i+1}</div>
+              <div style="font-weight:600; margin-bottom:4px;">${d}</div>
+              <div style="font-size:0.8125rem; color:var(--text-muted);">Alternatives: ${item.querySelector('.arch-alternatives').value.trim() || '—'}</div>
+              <div style="font-size:0.8125rem; color:var(--text-muted);">Reason: ${item.querySelector('.arch-reason').value.trim() || '—'}</div>
+            </div>`;
+        }
+      });
+
+      summary.innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div class="glass-panel" style="padding:16px;">
+            <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px;">NAME</div>
+            <div style="font-weight:600;">${name || '—'}</div>
+          </div>
+          <div class="glass-panel" style="padding:16px;">
+            <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px;">PROJECT</div>
+            <div style="font-weight:600;">${title || '—'}</div>
+          </div>
+          <div class="glass-panel" style="padding:16px;">
+            <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px;">YEAR</div>
+            <div style="font-weight:600;">${year || '—'}</div>
+          </div>
+          <div class="glass-panel" style="padding:16px;">
+            <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px;">BRANCH</div>
+            <div style="font-weight:600;">${branch || '—'}</div>
+          </div>
+        </div>
+        ${limitations ? `<div class="glass-panel" style="padding:16px;">
+          <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:4px;">LIMITATIONS</div>
+          <div style="font-size:0.9rem;">${limitations}</div>
+        </div>` : ''}
+        ${archHtml ? `<div style="display:grid; gap:12px;">${archHtml}</div>` : ''}
+      `;
+    }
+
+    document.getElementById('step1-next').addEventListener('click', () => {
+      const name = document.getElementById('name').value.trim();
+      const title = document.getElementById('title').value.trim();
+      if (!name || !title) {
+        alert('Name and Project Title are required.');
+        return;
+      }
+      setStep(2);
+    });
+
+    document.getElementById('step2-back').addEventListener('click', () => setStep(1));
+
+    document.getElementById('step2-next').addEventListener('click', () => setStep(3));
+
+    document.getElementById('step3-back').addEventListener('click', () => setStep(2));
+
+    document.getElementById('add-arch-btn').addEventListener('click', () => {
+      if (archCount >= 3) return;
+      archCount++;
+      const container = document.getElementById('arch-container');
+      const div = document.createElement('div');
+      div.className = 'arch-item glass-panel';
+      div.style = 'padding:20px; margin-bottom:16px;';
+      div.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <h4 style="color:var(--accent-indigo); font-size:0.875rem;">Decision ${archCount}</h4>
+          <button type="button" onclick="this.closest('.arch-item').remove(); archCount--;" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.8rem;">✕ Remove</button>
+        </div>
+        <div class="form-group">
+          <label>Decision Made</label>
+          <input type="text" class="arch-decision" placeholder="e.g. Used PostgreSQL over MongoDB" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Alternatives Considered</label>
+          <input type="text" class="arch-alternatives" placeholder="e.g. MongoDB, MySQL, SQLite" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Reason Chosen</label>
+          <textarea class="arch-reason" rows="2" placeholder="e.g. ACID compliance required for financial transactions..."></textarea>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('submit-btn');
+      const msg = document.getElementById('msg');
+
+      const archItems = document.querySelectorAll('.arch-item');
+      const architecture = [];
+      archItems.forEach(item => {
+        const decision = item.querySelector('.arch-decision').value.trim();
+        if (decision) {
+          architecture.push({
+            decision,
+            alternatives: item.querySelector('.arch-alternatives').value.trim(),
+            reason: item.querySelector('.arch-reason').value.trim()
+          });
+        }
+      });
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      msg.innerHTML = '<div class="msg-loading">Saving student data...</div>';
+
+      try {
+        const res = await fetch('/api/students', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('name').value.trim(),
+            year: document.getElementById('year').value.trim(),
+            branch: document.getElementById('branch').value.trim(),
+            title: document.getElementById('title').value.trim(),
+            description: document.getElementById('description').value.trim(),
+            architecture,
+            limitations: document.getElementById('limitations').value.trim()
+          })
+        });
+
+        if (!res.ok) throw new Error('Failed to save');
+        const data = await res.json();
+
+        document.getElementById('success-student-name').textContent = `"${data.name}" is ready for questioning.`;
+        document.getElementById('success-overlay').classList.add('show');
+        msg.innerHTML = '';
+      } catch (e) {
+        msg.innerHTML = `<div class="msg-error">Error: ${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Student ✓';
+      }
+    });
+
+    function resetForm() {
+      document.getElementById('success-overlay').classList.remove('show');
+      document.getElementById('name').value = '';
+      document.getElementById('year').value = '';
+      document.getElementById('branch').value = '';
+      document.getElementById('title').value = '';
+      document.getElementById('description').value = '';
+      document.getElementById('limitations').value = '';
+      document.querySelectorAll('.arch-decision, .arch-alternatives, .arch-reason').forEach(e => e.value = '');
+      setStep(1);
+    }
+  </script>
+</body>
+</html>

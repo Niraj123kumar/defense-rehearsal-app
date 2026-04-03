@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <script src="nav.js" data-page="dashboard"></script>
+
+  <main class="main-content">
+    <div class="page-wrapper">
+
+      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Student performance overview and dimension breakdowns.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" id="export-btn">📥 Export CSV</button>
+      </div>
+
+      <div id="msg" style="margin-bottom:16px;"></div>
+
+      <!-- Metric Cards -->
+      <div class="metric-grid" id="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">Total Students</div>
+          <div class="metric-value" id="metric-students">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Sessions Run</div>
+          <div class="metric-value" id="metric-sessions">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Avg Improvement</div>
+          <div class="metric-value" id="metric-improvement">—</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Top Performer</div>
+          <div class="metric-value" id="metric-topper" style="font-size:1.25rem;"></div>
+        </div>
+      </div>
+
+      <!-- Students Table -->
+      <div class="card card-static">
+        <h2 style="font-size:1.125rem; margin-bottom:20px;">All Students</h2>
+        <div id="table-container">
+          <table class="data-table" id="students-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Project</th>
+                <th>Baseline</th>
+                <th>Latest</th>
+                <th>Delta</th>
+                <th>Sessions</th>
+              </tr>
+            </thead>
+            <tbody id="students-tbody">
+              <tr><td colspan="6"><div class="skeleton skeleton-text" style="width:100%;"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state" style="display:none; padding:48px 0;">
+          <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="8" y="16" width="64" height="52" rx="6" stroke-opacity="0.3"/>
+            <path d="M8 28h64" stroke-opacity="0.5"/>
+            <path d="M20 44h16M20 54h24" stroke-opacity="0.4" stroke-linecap="round"/>
+            <circle cx="60" cy="22" r="10" stroke-opacity="0.5"/>
+            <path d="M57 22l3 3 5-5" stroke-opacity="0.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3>No students yet</h3>
+          <p>Register your first student via the Onboarding page to get started.</p>
+          <a href="onboarding.html" class="btn btn-primary btn-sm">Register Student →</a>
+        </div>
+      </div>
+
+      <!-- Expanded Detail Panel -->
+      <div id="detail-panel" style="display:none; margin-top:24px;">
+        <div class="card card-static">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+            <h2 style="font-size:1.125rem;" id="detail-student-name"></h2>
+            <button class="btn btn-secondary btn-sm" onclick="closeDetail()">✕ Close</button>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+            <div class="glass-panel" style="padding:16px; text-align:center;">
+              <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">BASELINE AVG</div>
+              <div style="font-family:var(--font-mono); font-size:1.75rem; font-weight:700; color:var(--text-muted);" id="detail-baseline"></div>
+            </div>
+            <div class="glass-panel" style="padding:16px; text-align:center;">
+              <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">LATEST AVG</div>
+              <div style="font-family:var(--font-mono); font-size:1.75rem; font-weight:700; color:var(--accent-indigo);" id="detail-latest"></div>
+            </div>
+          </div>
+          <div style="position:relative; max-height:320px;">
+            <canvas id="radar-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let studentsData = [];
+    let radarChart = null;
+
+    const dimLabels = { clarity: 'Clarity', reasoning: 'Logical Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
+    const dimColors = { clarity: '#60A5FA', reasoning: '#F59E0B', depth: '#EF4444', confidence: '#10B981' };
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/students');
+        studentsData = await res.json();
+        renderAll();
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load dashboard: ${e.message}</div>`;
+      }
+    }
+
+    function avgDim(scores) {
+      const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
+      const vals = dims.map(d => scores[d] || 0);
+      return (vals.reduce((a, b) => a + b, 0) / 4).toFixed(2);
+    }
+
+    function renderAll() {
+      const hasData = studentsData.length > 0;
+
+      // Metrics
+      document.getElementById('metric-students').textContent = hasData ? studentsData.length : '—';
+      const totalSessions = studentsData.filter(s => s.baseline).length;
+      document.getElementById('metric-sessions').textContent = totalSessions || '—';
+
+      const deltas = studentsData.filter(s => s.baseline && s.final).map(s => s.final - s.baseline);
+      const avgDelta = deltas.length ? (deltas.reduce((a, b) => a + b, 0) / deltas.length).toFixed(1) : null;
+      const metricImp = document.getElementById('metric-improvement');
+      if (avgDelta !== null) {
+        const sign = avgDelta > 0 ? '+' : '';
+        metricImp.textContent = `${sign}${avgDelta}`;
+        metricImp.style.color = avgDelta > 0 ? 'var(--accent-emerald)' : avgDelta < 0 ? 'var(--accent-red)' : 'var(--text-primary)';
+      } else {
+        metricImp.textContent = '—';
+      }
+
+      // Top performer
+      const topper = studentsData.filter(s => s.final).sort((a, b) => (b.final || 0) - (a.final || 0))[0];
+      document.getElementById('metric-topper').textContent = topper ? topper.name.split(' ')[0] : '—';
+
+      // Table
+      const tbody = document.getElementById('students-tbody');
+      const emptyState = document.getElementById('empty-state');
+      const tableContainer = document.getElementById('table-container');
+
+      if (!hasData) {
+        tbody.innerHTML = '';
+        tableContainer.style.display = 'none';
+        emptyState.style.display = 'flex';
+        return;
+      }
+
+      tableContainer.style.display = 'block';
+      emptyState.style.display = 'none';
+
+      tbody.innerHTML = '';
+      studentsData.forEach(s => {
+        const delta = s.baseline && s.final ? (s.final - s.baseline).toFixed(2) : null;
+        const deltaClass = delta === null ? 'delta-neutral' : parseFloat(delta) > 0 ? 'delta-positive' : parseFloat(delta) < 0 ? 'delta-negative' : 'delta-neutral';
+        const deltaText = delta === null ? '—' : parseFloat(delta) > 0 ? `▲ +${delta}` : parseFloat(delta) < 0 ? `▼ ${delta}` : '—';
+        const sessions = s.baseline ? '1+' : '0';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><a href="profile.html?id=${s.id}" style="font-weight:600; color:var(--text-primary);">${s.name}</a></td>
+          <td style="color:var(--text-muted); font-size:0.875rem;">${s.title}</td>
+          <td><span style="font-family:var(--font-mono);">${s.baseline ? s.baseline + '/5' : '—'}</span></td>
+          <td><span style="font-family:var(--font-mono);">${s.final ? s.final + '/5' : '—'}</span></td>
+          <td><span class="${deltaClass}" style="font-family:var(--font-mono);">${deltaText}</span></td>
+          <td><span style="font-family:var(--font-mono);">${sessions}</span></td>
+        `;
+        tr.addEventListener('click', () => showDetail(s));
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function showDetail(student) {
+      const panel = document.getElementById('detail-panel');
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth' });
+
+      document.getElementById('detail-student-name').textContent = student.name;
+      document.getElementById('detail-baseline').textContent = student.baseline ? student.baseline + '/5' : '—';
+      document.getElementById('detail-latest').textContent = student.final ? student.final + '/5' : '—';
+
+      try {
+        const scores = await fetch(`/api/scores/${student.id}`).then(r => r.json());
+        if (!scores || !scores.length) { panel.style.display = 'none'; return; }
+
+        const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
+
+        const baseline = {};
+        const latest = {};
+        dims.forEach(d => {
+          baseline[d] = scores[0].responses.reduce((sum, r) => sum + (r.scores[d] || 0), 0) / scores[0].responses.length;
+          latest[d] = scores[scores.length - 1].responses.reduce((sum, r) => sum + (r.scores[d] || 0), 0) / scores[scores.length - 1].responses.length;
+        });
+
+        const ctx = document.getElementById('radar-chart').getContext('2d');
+        if (radarChart) radarChart.destroy();
+
+        radarChart = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: dims.map(d => dimLabels[d]),
+            datasets: [
+              {
+                label: 'Baseline',
+                data: dims.map(d => baseline[d].toFixed(2)),
+                borderColor: 'rgba(100, 116, 139, 0.6)',
+                backgroundColor: 'rgba(100, 116, 139, 0.08)',
+                borderWidth: 1.5,
+                pointBackgroundColor: 'rgba(100, 116, 139, 0.8)',
+                pointRadius: 4
+              },
+              {
+                label: 'Latest',
+                data: dims.map(d => latest[d].toFixed(2)),
+                borderColor: '#6366F1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#6366F1',
+                pointRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+              r: {
+                min: 0,
+                max: 5,
+                ticks: { stepSize: 1, color: '#64748B', backdropColor: 'transparent', font: { family: 'JetBrains Mono', size: 10 } },
+                grid: { color: 'rgba(255,255,255,0.06)' },
+                angleLines: { color: 'rgba(255,255,255,0.06)' },
+                pointLabels: { color: '#94A3B8', font: { family: 'Space Grotesk', size: 12 } }
+              }
+            },
+            plugins: {
+              legend: {
+                labels: { color: '#94A3B8', font: { family: 'Space Grotesk', size: 12 }, boxWidth: 12 }
+              }
+            }
+          }
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function closeDetail() {
+      document.getElementById('detail-panel').style.display = 'none';
+      if (radarChart) { radarChart.destroy(); radarChart = null; }
+    }
+
+    document.getElementById('export-btn').addEventListener('click', () => {
+      if (!studentsData.length) { alert('No data to export.'); return; }
+      const headers = ['Name', 'Project', 'Branch', 'Year', 'Baseline Avg', 'Final Avg', 'Delta'];
+      const rows = studentsData.map(s => {
+        const delta = s.baseline && s.final ? (s.final - s.baseline).toFixed(2) : '';
+        return [`"${s.name}"`, `"${s.title}"`, `"${s.branch || ''}"`, `"${s.year || ''}"`, s.baseline || '', s.final || '', delta].join(',');
+      });
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `pdrs-export-${Date.now()}.csv`;
+      a.click();
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>
