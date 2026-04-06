@@ -51,7 +51,8 @@ async function callOllama(prompt) {
     const json = await res.json();
     return json.response || '';
   } catch (e) {
-    throw new Error(`Ollama call failed: ${e.message}`);
+    console.error("Ollama failed:", e.message);
+    return "";
   }
 }
 
