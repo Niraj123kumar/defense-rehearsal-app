@@ -9,15 +9,16 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 
 app.use(express.json());
 app.use(express.static('public'));
 
-const OLLAMA_URL = 'http://localhost:11434/api/generate';
-const OLLAMA_MODEL = 'llama3.2:latest';
+// ─── Config ───────────────────────────────────────────────────────────────────
 const TEACHER_PASSWORD = process.env.TEACHER_PASSWORD || 'faculty2024';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const USE_CLAUDE = !!ANTHROPIC_API_KEY;
 
 // Ensure data directory exists
 (async () => {
@@ -25,7 +26,6 @@ const TEACHER_PASSWORD = process.env.TEACHER_PASSWORD || 'faculty2024';
 })();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
 async function readJson(filename) {
   try {
     return JSON.parse(await fs.readFile(path.join(DATA_DIR, filename), 'utf8'));
@@ -36,10 +36,43 @@ async function writeJson(filename, data) {
   await fs.writeFile(path.join(DATA_DIR, filename), JSON.stringify(data, null, 2));
 }
 
+// ─── AI Provider (Claude API or Ollama fallback) ──────────────────────────────
+async function callAI(prompt) {
+  if (USE_CLAUDE) {
+    return await callClaude(prompt);
+  } else {
+    return await callOllama(prompt);
+  }
+}
+
+async function callClaude(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Claude API error ${res.status}: ${err}`);
+  }
+  const json = await res.json();
+  return json.content?.[0]?.text || '';
+}
+
 async function callOllama(prompt) {
+  const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
+  const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:latest';
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), 90000);
     const res = await fetch(OLLAMA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,8 +84,7 @@ async function callOllama(prompt) {
     const json = await res.json();
     return json.response || '';
   } catch (e) {
-    console.error("Ollama failed:", e.message);
-    return "";
+    throw new Error(`AI call failed: ${e.message}`);
   }
 }
 
@@ -63,9 +95,69 @@ function randRoomCode() {
   return code;
 }
 
-// ─── Existing REST Routes ─────────────────────────────────────────────────────
+// ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, aiProvider: USE_CLAUDE ? 'claude' : 'ollama', timestamp: new Date().toISOString() });
+});
 
-// GET /api/students
+// ─── DEMO MODE ────────────────────────────────────────────────────────────────
+app.get('/api/demo/student', async (req, res) => {
+  try {
+    const students = (await readJson('students.json')) || [];
+    let demo = students.find(s => s.id === 'demo_student');
+    if (!demo) {
+      demo = {
+        id: 'demo_student',
+        name: 'Demo Student',
+        year: '3rd Year',
+        branch: 'Computer Science',
+        title: 'Real-Time Collaborative Code Editor',
+        description: 'A web-based IDE that allows multiple users to collaboratively edit code in real-time using operational transforms and WebSocket connections.',
+        architecture: [
+          { decision: 'Operational Transforms for conflict resolution', alternatives: 'CRDTs, last-write-wins', reason: 'OT gives predictable merge behavior for code edits' },
+          { decision: 'WebSocket over HTTP polling', alternatives: 'HTTP long-polling, SSE', reason: 'Lower latency and bidirectional communication needed' },
+          { decision: 'Monaco Editor (VS Code core)', alternatives: 'CodeMirror, Ace', reason: 'Better language support and VS Code familiarity for users' }
+        ],
+        limitations: 'No offline mode; OT algorithm complexity increases with concurrent users beyond 10; no git integration yet.',
+        isDemo: true,
+        createdAt: new Date().toISOString()
+      };
+      students.push(demo);
+      await writeJson('students.json', students);
+    }
+
+    // Create demo questions if none
+    const existingQ = await readJson('questions_demo_student.json');
+    if (!existingQ) {
+      await writeJson('questions_demo_student.json', {
+        studentId: 'demo_student',
+        generatedAt: new Date().toISOString(),
+        questions: {
+          tier1: [
+            'Explain in simple terms what your system does and who uses it.',
+            'Walk me through the main components of your architecture.'
+          ],
+          tier2: [
+            'Why did you choose Operational Transforms over CRDTs for conflict resolution?',
+            'How does your system handle network partitions or dropped WebSocket connections?',
+            'What happens when two users simultaneously edit the same line of code?',
+            'How does Monaco Editor integrate with your real-time sync layer?',
+            'What are the scalability limits of your current WebSocket architecture?'
+          ],
+          tier3: [
+            'If your OT server crashes mid-session, what data is lost and how do you recover?',
+            'How would you handle a malicious user injecting code through your editor?',
+            'What breaks first when you go from 10 to 1000 concurrent users?'
+          ]
+        }
+      });
+    }
+
+    res.json({ studentId: 'demo_student', message: 'Demo mode active' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── STUDENTS ─────────────────────────────────────────────────────────────────
 app.get('/api/students', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
@@ -75,17 +167,20 @@ app.get('/api/students', async (req, res) => {
       let baseline = null, final = null;
       if (scores && scores.length > 0) {
         const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
-        const avg = sc => dims.reduce((a, d) => a + (sc[d] || 0), 0) / 4;
-        baseline = avg(scores[0]);
-        final = avg(scores[scores.length - 1]);
+        const avg = sc => {
+          const responses = sc.responses || [];
+          if (!responses.length) return 0;
+          return responses.reduce((a, r) => a + dims.reduce((s, d) => s + (r.scores?.[d] || r[d] || 0), 0) / 4, 0) / responses.length;
+        };
+        baseline = parseFloat(avg(scores[0]).toFixed(2));
+        final = parseFloat(avg(scores[scores.length - 1]).toFixed(2));
       }
-      return { ...s, questionsGenerated: !!questions, baseline, final };
+      return { ...s, questionsGenerated: !!questions, sessionCount: scores?.length || 0, baseline, final };
     }));
     res.json(enriched);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/students
 app.post('/api/students', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
@@ -99,7 +194,6 @@ app.post('/api/students', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/students/:id
 app.get('/api/students/:id', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
@@ -109,12 +203,24 @@ app.get('/api/students/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/generate-questions/:id
+// DELETE student
+app.delete('/api/students/:id', async (req, res) => {
+  try {
+    let students = (await readJson('students.json')) || [];
+    students = students.filter(s => s.id !== req.params.id);
+    await writeJson('students.json', students);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── QUESTION GENERATION ──────────────────────────────────────────────────────
 app.post('/api/generate-questions/:id', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    const { count = 10, focusTier } = req.body;
 
     const prompt = `You are generating interview questions for a student defense rehearsal.
 
@@ -142,155 +248,289 @@ TIER 2 — Design Tradeoffs (5 questions):
 TIER 3 — Failure Modes (3 questions):
 1. [question]
 2. [question]
-3. [question]`;
+3. [question]
 
-    const raw = await callOllama(prompt);
+Make questions specific to this project, not generic. Probe the actual decisions and tradeoffs mentioned.`;
+
+    const raw = await callAI(prompt);
     const questions = { tier1: [], tier2: [], tier3: [] };
-    const tierMap = { 'tier 1': 'tier1', 'tier 2': 'tier2', 'tier 3': 'tier3' };
     let currentTier = null;
     for (const line of raw.split('\n')) {
       const trimmed = line.trim();
-      const m = trimmed.match(/^tier\s*[123]/i);
-      if (m) { currentTier = tierMap[m[0].replace(/\s+/g, ' ').toLowerCase()]; continue; }
+      if (/tier\s*1/i.test(trimmed)) { currentTier = 'tier1'; continue; }
+      if (/tier\s*2/i.test(trimmed)) { currentTier = 'tier2'; continue; }
+      if (/tier\s*3/i.test(trimmed)) { currentTier = 'tier3'; continue; }
       const qm = trimmed.match(/^\d+[\.\)]\s*(.+)/);
       if (qm && currentTier) questions[currentTier].push(qm[1]);
     }
-    if (!questions.tier1.length && !questions.tier2.length && !questions.tier3.length) {
-      questions.tier1 = ['What does your system do?', 'What are the main components?'];
-      questions.tier2 = ['Why did you choose this approach?', 'What alternatives did you consider?', 'What are the tradeoffs?', 'How does it compare to alternatives?', 'What would you do differently?'];
-      questions.tier3 = ['What breaks under load?', 'What are the failure points?', 'How do you handle errors?'];
-    }
-    await writeJson(`questions_${student.id}.json`, { studentId: student.id, generatedAt: new Date().toISOString(), questions });
-    res.json({ success: true, questions, raw });
+    // Fallbacks
+    if (!questions.tier1.length) questions.tier1 = ['What does your system do and who uses it?', 'Walk me through the main components of your architecture.'];
+    if (!questions.tier2.length) questions.tier2 = ['Why did you choose this approach over alternatives?', 'What tradeoffs did you accept with this design?', 'How does your system handle concurrent users?', 'What was the hardest technical decision you made?', 'How would you redesign this if you started over?'];
+    if (!questions.tier3.length) questions.tier3 = ['What breaks first under heavy load?', 'What are the 3 most likely failure points?', 'How do you handle data loss scenarios?'];
+
+    const qData = { studentId: student.id, generatedAt: new Date().toISOString(), questions, raw };
+    await writeJson(`questions_${student.id}.json`, qData);
+    res.json({ success: true, questions, raw, aiProvider: USE_CLAUDE ? 'claude' : 'ollama' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/scores
+// ─── SCORES ───────────────────────────────────────────────────────────────────
 app.post('/api/scores', async (req, res) => {
   try {
-    const { studentId, responses } = req.body;
+    const { studentId, responses, sessionType } = req.body;
     if (!studentId || !responses) return res.status(400).json({ error: 'studentId and responses required' });
     const filename = `scores_${studentId}.json`;
     const existing = (await readJson(filename)) || [];
-    const entry = { session: existing.length + 1, timestamp: new Date().toISOString(), responses };
+    const entry = {
+      session: existing.length + 1,
+      timestamp: new Date().toISOString(),
+      sessionType: sessionType || 'solo',
+      responses
+    };
     existing.push(entry);
     await writeJson(filename, existing);
     res.json({ success: true, session: entry.session });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/scores/:id
 app.get('/api/scores/:id', async (req, res) => {
   try { res.json((await readJson(`scores_${req.params.id}.json`)) || []); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/questions/:id
+// ─── QUESTIONS ────────────────────────────────────────────────────────────────
 app.get('/api/questions/:id', async (req, res) => {
   try {
     const q = await readJson(`questions_${req.params.id}.json`);
-    if (!q) return res.status(404).json({ error: 'Questions not found' });
+    if (!q) return res.status(404).json({ error: 'Questions not found. Please generate questions first.' });
     res.json(q);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/coaching/:id
+// ─── AI ANSWER EVALUATION ─────────────────────────────────────────────────────
+app.post('/api/evaluate-answer', async (req, res) => {
+  try {
+    const { studentId, questionText, answer, tier } = req.body;
+    if (!answer || !questionText) return res.status(400).json({ error: 'answer and questionText required' });
+
+    const student = studentId ? (await readJson('students.json') || []).find(s => s.id === studentId) : null;
+
+    const prompt = `You are evaluating a student's written answer during a project defense rehearsal.
+
+Project: ${student?.title || 'Engineering Project'}
+Question (${tier || 'general'}): "${questionText}"
+Student Answer: "${answer}"
+
+Score 1-5 on each dimension:
+- clarity: Explains clearly without unnecessary jargon (1=incomprehensible, 5=crystal clear)
+- reasoning: Logical structure and sound argumentation (1=illogical, 5=well-reasoned)  
+- depth: Technical understanding beyond surface facts (1=superficial, 5=expert depth)
+- confidence: Decisive, owns the answer (1=evasive, 5=commanding)
+
+Also provide:
+- feedback: 2-3 sentence specific feedback on what was good and what to improve
+- suggestion: One specific thing they should add or change in their answer
+
+Respond ONLY with valid JSON, no markdown, no explanation:
+{"clarity":N,"reasoning":N,"depth":N,"confidence":N,"feedback":"...","suggestion":"..."}`;
+
+    const raw = await callAI(prompt);
+    let result = { clarity: 3, reasoning: 3, depth: 3, confidence: 3, feedback: 'Keep working on clarity and depth.', suggestion: 'Try to be more specific about technical details.' };
+    try {
+      const match = raw.match(/\{[\s\S]*?\}/);
+      if (match) result = { ...result, ...JSON.parse(match[0]) };
+    } catch {}
+
+    res.json({ success: true, scores: result, aiProvider: USE_CLAUDE ? 'claude' : 'ollama' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── COACHING ─────────────────────────────────────────────────────────────────
 app.post('/api/coaching/:id', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
     const student = students.find(s => s.id === req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });
     const scores = await readJson(`scores_${student.id}.json`);
-    if (!scores || !scores.length) return res.status(400).json({ error: 'No baseline scores found.' });
+    if (!scores || !scores.length) return res.status(400).json({ error: 'No baseline scores found. Complete at least one defense session first.' });
+
     const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
-    const first = scores[0].responses;
-    const weakDims = dims.slice().sort((a, b) => (first[a] || 3) - (first[b] || 3)).slice(0, 2);
-    const dimDescriptions = { clarity: 'Ability to explain concepts clearly without jargon', reasoning: 'Logical thinking and structured argumentation', depth: 'Technical depth and understanding of internals', confidence: 'Delivery, composure, and self-assurance' };
-    const prompt = `You are a technical coach. A student scored low on: ${weakDims.join(' and ')}.
+    const dimDescriptions = {
+      clarity: 'Ability to explain concepts clearly without jargon',
+      reasoning: 'Logical thinking and structured argumentation',
+      depth: 'Technical depth and understanding of internals',
+      confidence: 'Delivery, composure, and self-assurance'
+    };
+
+    // Average each dim across all sessions
+    const dimTotals = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
+    let count = 0;
+    scores.forEach(s => {
+      (s.responses || []).forEach(r => {
+        dims.forEach(d => { dimTotals[d] += r.scores?.[d] || r[d] || 0; });
+        count++;
+      });
+    });
+    const dimAvgs = {};
+    dims.forEach(d => { dimAvgs[d] = count > 0 ? dimTotals[d] / count : 3; });
+    const weakDims = dims.slice().sort((a, b) => dimAvgs[a] - dimAvgs[b]).slice(0, 2);
+
+    const prompt = `You are a technical coach for engineering students. A student scored low on: ${weakDims.map(d => d + ' (' + dimDescriptions[d] + ')').join(' and ')}.
 
 Student Context:
 - Name: ${student.name}
 - Project: ${student.title}
 - Description: ${student.description || 'Not provided'}
 - Architecture Decisions:
-${(student.architecture || []).map((a, i) => `${i+1}. ${a.decision}\n   Alternatives: ${a.alternatives}\n   Reason: ${a.reason}`).join('\n')}
+${(student.architecture || []).map((a, i) => `${i+1}. ${a.decision}`).join('\n')}
 
-Generate exactly 8 practice questions — 4 for each weak dimension — formatted as:
+Generate exactly 8 targeted practice questions — 4 for each weak dimension:
 
 DIMENSION: ${weakDims[0].toUpperCase()} — ${dimDescriptions[weakDims[0]]}
-1. [question]
-2. [question]
-3. [question]
-4. [question]
+1. [question specific to their project]
+2. [question specific to their project]
+3. [question specific to their project]
+4. [question specific to their project]
 
 DIMENSION: ${weakDims[1].toUpperCase()} — ${dimDescriptions[weakDims[1]]}
-1. [question]
-2. [question]
-3. [question]
-4. [question]`;
+1. [question specific to their project]
+2. [question specific to their project]
+3. [question specific to their project]
+4. [question specific to their project]
 
-    const raw = await callOllama(prompt);
-    const coaching = { weakDimensions: weakDims, questions: { [weakDims[0]]: [], [weakDims[1]]: [] } };
+Also include one tip for each dimension on how to improve, formatted as:
+TIP_${weakDims[0].toUpperCase()}: [specific improvement tip]
+TIP_${weakDims[1].toUpperCase()}: [specific improvement tip]`;
+
+    const raw = await callAI(prompt);
+    const coaching = {
+      weakDimensions: weakDims,
+      dimAverages: dimAvgs,
+      questions: { [weakDims[0]]: [], [weakDims[1]]: [] },
+      tips: { [weakDims[0]]: '', [weakDims[1]]: '' }
+    };
+
     let currentDim = null;
     for (const line of raw.split('\n')) {
       const trimmed = line.trim();
       if (trimmed.startsWith('DIMENSION:')) {
-        const dim = trimmed.split(':')[1].trim().split('—')[0].trim().toLowerCase();
+        const dim = trimmed.replace('DIMENSION:', '').trim().split('—')[0].trim().toLowerCase();
         if (coaching.questions[dim] !== undefined) currentDim = dim;
         continue;
+      }
+      for (const wd of weakDims) {
+        if (trimmed.startsWith(`TIP_${wd.toUpperCase()}:`)) {
+          coaching.tips[wd] = trimmed.replace(`TIP_${wd.toUpperCase()}:`, '').trim();
+        }
       }
       const qm = trimmed.match(/^\d+[\.\)]\s*(.+)/);
       if (qm && currentDim) coaching.questions[currentDim].push(qm[1]);
     }
-    if (!coaching.questions[weakDims[0]].length) coaching.questions[weakDims[0]] = [`Explain ${student.title} to a non-technical person in 2 minutes.`, 'What is the core insight behind your approach?', 'If someone asks "why not just X?", how do you respond?', 'Describe the data flow in your system end-to-end.'];
-    if (!coaching.questions[weakDims[1]].length) coaching.questions[weakDims[1]] = ['What happens to your system if the database goes down?', 'Walk me through your scaling plan from 100 to 100k users.', 'What are the 3 most likely bugs in your system?', 'If your API latency spikes 10x, how do you diagnose it?'];
-    res.json({ success: true, coaching });
+
+    // Fallbacks
+    if (!coaching.questions[weakDims[0]].length) coaching.questions[weakDims[0]] = [
+      `Explain ${student.title} to a non-technical person in 2 minutes.`,
+      'What is the core insight behind your approach?',
+      'If someone asks "why not just use an existing tool?", how do you respond?',
+      'Describe the data flow in your system end-to-end.'
+    ];
+    if (!coaching.questions[weakDims[1]].length) coaching.questions[weakDims[1]] = [
+      'What happens to your system if the primary service goes down?',
+      'Walk me through your plan to scale from 100 to 100k users.',
+      'What are the 3 most likely bugs in your current implementation?',
+      'If latency spikes 10x, how do you diagnose and fix it?'
+    ];
+
+    res.json({ success: true, coaching, aiProvider: USE_CLAUDE ? 'claude' : 'ollama' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/profile/:studentId
+// ─── PROFILE ──────────────────────────────────────────────────────────────────
 app.get('/api/profile/:studentId', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
     const student = students.find(s => s.id === req.params.studentId);
     if (!student) return res.status(404).json({ error: 'Student not found' });
     const scores = await readJson(`scores_${req.params.studentId}.json`);
-    if (!scores || !scores.length) return res.status(404).json({ error: 'No sessions found' });
+    if (!scores || !scores.length) return res.status(404).json({ error: 'No sessions found. Complete a defense session first.' });
+
     const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
     const dimNames = { clarity: 'Clarity', reasoning: 'Logical Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
     const dimTotals = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
     let totalResponses = 0;
-    scores.forEach(s => { s.responses.forEach(r => { dims.forEach(d => { dimTotals[d] += r.scores[d] || 0; }); totalResponses++; }); });
-    const dimensionAverages = {}; dims.forEach(d => { dimensionAverages[dimNames[d]] = totalResponses > 0 ? parseFloat((dimTotals[d] / totalResponses).toFixed(2)) : 0; });
-    const trajectory = scores.map(s => {
-      const avg = s.responses.length ? s.responses.reduce((sum, r) => sum + dims.reduce((s, d) => s + (r.scores[d] || 0), 0) / 4, 0) / s.responses.length : 0;
-      return { session: s.session, avg: parseFloat(avg.toFixed(2)) };
+
+    scores.forEach(s => {
+      (s.responses || []).forEach(r => {
+        dims.forEach(d => { dimTotals[d] += r.scores?.[d] || r[d] || 0; });
+        totalResponses++;
+      });
     });
-    const firstDimAvg = {}; const lastDimAvg = {};
-    dims.forEach(d => { firstDimAvg[d] = scores[0].responses.reduce((sum, r) => sum + (r.scores[d] || 0), 0) / scores[0].responses.length; lastDimAvg[d] = scores[scores.length - 1].responses.reduce((sum, r) => sum + (r.scores[d] || 0), 0) / scores[scores.length - 1].responses.length; });
-    const improvements = {}; dims.forEach(d => { improvements[d] = lastDimAvg[d] - firstDimAvg[d]; });
+
+    const dimensionAverages = {};
+    dims.forEach(d => { dimensionAverages[dimNames[d]] = totalResponses > 0 ? parseFloat((dimTotals[d] / totalResponses).toFixed(2)) : 0; });
+
+    const trajectory = scores.map(s => {
+      const resps = s.responses || [];
+      const avg = resps.length ? resps.reduce((sum, r) => sum + dims.reduce((ss, d) => ss + (r.scores?.[d] || r[d] || 0), 0) / 4, 0) / resps.length : 0;
+      return { session: s.session, avg: parseFloat(avg.toFixed(2)), timestamp: s.timestamp };
+    });
+
+    const getSessionAvg = (sess) => {
+      const resps = sess.responses || [];
+      const result = {};
+      dims.forEach(d => { result[d] = resps.length ? resps.reduce((s, r) => s + (r.scores?.[d] || r[d] || 0), 0) / resps.length : 0; });
+      return result;
+    };
+
+    const firstAvg = getSessionAvg(scores[0]);
+    const lastAvg = getSessionAvg(scores[scores.length - 1]);
+    const improvements = {};
+    dims.forEach(d => { improvements[d] = lastAvg[d] - firstAvg[d]; });
+
     const sortedImp = dims.slice().sort((a, b) => improvements[b] - improvements[a]);
     const sortedAvg = dims.slice().sort((a, b) => dimensionAverages[dimNames[a]] - dimensionAverages[dimNames[b]]);
-    res.json({ studentId: student.id, studentName: student.name, projectTitle: student.title, totalSessions: scores.length, dimensionAverages, mostImproved: dimNames[sortedImp[0]], weakest: dimNames[sortedAvg[0]], trajectory, dimDescriptions: dimNames, dimImprovements: Object.fromEntries(dims.map(d => [dimNames[d], parseFloat(improvements[d].toFixed(2))])) });
+
+    res.json({
+      studentId: student.id, studentName: student.name, projectTitle: student.title,
+      year: student.year, branch: student.branch,
+      totalSessions: scores.length, dimensionAverages,
+      mostImproved: dimNames[sortedImp[0]], weakest: dimNames[sortedAvg[0]],
+      trajectory, dimDescriptions: dimNames,
+      dimImprovements: Object.fromEntries(dims.map(d => [dimNames[d], parseFloat(improvements[d].toFixed(2))]))
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/analytics/cohort
+// ─── ANALYTICS ────────────────────────────────────────────────────────────────
 app.get('/api/analytics/cohort', async (req, res) => {
   try {
     const students = (await readJson('students.json')) || [];
     const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
     const dimNames = { clarity: 'Clarity', reasoning: 'Logical Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
-    let totalDimSum = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 }; let totalResponses = 0;
-    let studentsWithMultipleSessions = 0; let allDeltas = []; let atRisk = []; let allSummaries = [];
+    let totalDimSum = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
+    let totalResponses = 0;
+    let studentsWithMultipleSessions = 0;
+    let allDeltas = [], atRisk = [], allSummaries = [];
+
     for (const student of students) {
       const scores = await readJson(`scores_${student.id}.json`);
       if (!scores || !scores.length) continue;
-      let sTotal = 0, sCount = 0; const sDimTotals = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
-      scores.forEach(sess => { sess.responses.forEach(r => { dims.forEach(d => sDimTotals[d] += r.scores[d] || 0); sTotal += dims.reduce((sum, d) => sum + (r.scores[d] || 0), 0) / 4; sCount++; }); });
+      let sTotal = 0, sCount = 0;
+      const sDimTotals = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
+      scores.forEach(sess => {
+        (sess.responses || []).forEach(r => {
+          dims.forEach(d => sDimTotals[d] += r.scores?.[d] || r[d] || 0);
+          sTotal += dims.reduce((sum, d) => sum + (r.scores?.[d] || r[d] || 0), 0) / 4;
+          sCount++;
+        });
+      });
       const avg = sCount > 0 ? sTotal / sCount : 0;
-      const finalAvg = scores.length > 1 ? scores[scores.length - 1].responses.reduce((sum, r) => sum + dims.reduce((s, d) => s + (r.scores[d] || 0), 0) / 4, 0) / scores[scores.length - 1].responses.length : avg;
-      const baselineAvg = scores[0].responses.reduce((sum, r) => sum + dims.reduce((s, d) => s + (r.scores[d] || 0), 0) / 4, 0) / scores[0].responses.length;
+      const getAvg = (sess) => {
+        const resps = sess.responses || [];
+        return resps.length ? resps.reduce((s, r) => s + dims.reduce((ss, d) => ss + (r.scores?.[d] || r[d] || 0), 0) / 4, 0) / resps.length : 0;
+      };
+      const finalAvg = getAvg(scores[scores.length - 1]);
+      const baselineAvg = getAvg(scores[0]);
       const delta = finalAvg - baselineAvg;
       if (scores.length >= 2) studentsWithMultipleSessions++;
       if (scores.length >= 2 && finalAvg < 3.0) atRisk.push({ id: student.id, name: student.name, title: student.title, sessions: scores.length, finalAvg: parseFloat(finalAvg.toFixed(2)), delta: parseFloat(delta.toFixed(2)) });
@@ -298,411 +538,224 @@ app.get('/api/analytics/cohort', async (req, res) => {
       if (sCount > 0) { dims.forEach(d => { totalDimSum[d] += sDimTotals[d]; }); totalResponses += sCount; }
       if (delta) allDeltas.push(delta);
     }
-    const dimensionAverages = {}; dims.forEach(d => { dimensionAverages[dimNames[d]] = totalResponses > 0 ? parseFloat((totalDimSum[d] / totalResponses).toFixed(2)) : 0; });
+
+    const dimensionAverages = {};
+    dims.forEach(d => { dimensionAverages[dimNames[d]] = totalResponses > 0 ? parseFloat((totalDimSum[d] / totalResponses).toFixed(2)) : 0; });
     const sortedDims = dims.slice().sort((a, b) => dimensionAverages[dimNames[a]] - dimensionAverages[dimNames[b]]);
     const topPerformers = allSummaries.sort((a, b) => (b.finalAvg || 0) - (a.finalAvg || 0)).slice(0, 3);
     const avgImprovement = allDeltas.length > 0 ? parseFloat((allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length).toFixed(2)) : null;
-    res.json({ totalStudents: students.length, studentsWithMultipleSessions, averageImprovement: avgImprovement, dimensionWeaknesses: sortedDims.map(d => ({ dimension: dimNames[d], average: dimensionAverages[dimNames[d]] })), topPerformers, atRisk });
+
+    res.json({ totalStudents: students.length, studentsWithMultipleSessions, averageImprovement: avgImprovement, dimensionWeaknesses: sortedDims.map(d => ({ dimension: dimNames[d], average: dimensionAverages[dimNames[d]] })), topPerformers, atRisk, allSummaries });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── PANEL SESSION ROUTES ─────────────────────────────────────────────────────
+// ─── EXPORT (PDF-ready JSON) ───────────────────────────────────────────────────
+app.get('/api/export/:studentId', async (req, res) => {
+  try {
+    const students = (await readJson('students.json')) || [];
+    const student = students.find(s => s.id === req.params.studentId);
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+    const scores = await readJson(`scores_${student.id}.json`) || [];
+    const questions = await readJson(`questions_${student.id}.json`);
+    res.json({ student, scores, questions, exportedAt: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-// POST /api/sessions/create
+// ─── PANEL SESSIONS ───────────────────────────────────────────────────────────
 app.post('/api/sessions/create', async (req, res) => {
   try {
-    const { studentId, teacherEmails } = req.body;
+    const { studentId } = req.body;
     if (!studentId) return res.status(400).json({ error: 'studentId required' });
     const students = (await readJson('students.json')) || [];
     const student = students.find(s => s.id === studentId);
     if (!student) return res.status(404).json({ error: 'Student not found' });
-
     const sessions = (await readJson('sessions.json')) || [];
     const roomCode = randRoomCode();
     const sessionId = uuidv4();
-    const teacherInviteUrl = `http://localhost:3000/teacher.html?room=${roomCode}`;
-
     const session = {
-      id: sessionId,
-      studentId,
-      studentName: student.name,
-      projectTitle: student.title,
-      roomCode,
-      teacherInviteUrl,
-      teacherEmails: teacherEmails || [],
-      phase: 'waiting',
-      teachers: [],
+      id: sessionId, studentId, studentName: student.name, projectTitle: student.title,
+      roomCode, phase: 'waiting', teachers: [],
       questions: (await readJson(`questions_${studentId}.json`)) || null,
-      aiScores: {},
-      teacherScores: {},
-      panelQuestions: [],
-      interruptions: [],
-      disagreements: [],
+      aiScores: {}, teacherScores: {}, panelQuestions: [], interruptions: [], disagreements: [],
       createdAt: Date.now()
     };
-
     sessions.push(session);
     await writeJson('sessions.json', sessions);
     io.emit('session-created', { sessionId, roomCode, studentName: student.name });
-
-    res.json({ sessionId, roomCode, teacherInviteUrl });
+    res.json({ sessionId, roomCode, teacherInviteUrl: `/teacher.html?room=${roomCode}` });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/sessions/:roomCode
 app.get('/api/sessions/:roomCode', async (req, res) => {
   try {
     const sessions = (await readJson('sessions.json')) || [];
     const session = sessions.find(s => s.roomCode === req.params.roomCode.toUpperCase());
     if (!session) return res.status(404).json({ error: 'Session not found' });
-    // Don't expose internal fields
     const { teacherScores, disagreements, ...pub } = session;
     res.json({ ...pub, teacherScores: teacherScores || {}, disagreements: disagreements || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/sessions/:roomCode/teacher-auth
 app.post('/api/sessions/:roomCode/teacher-auth', async (req, res) => {
   try {
     const { password, teacherName } = req.body;
     if (!password || !teacherName) return res.status(400).json({ error: 'password and teacherName required' });
-    const valid = await bcrypt.compare(password, await bcrypt.hash(TEACHER_PASSWORD, 10));
-    // For simplicity, just check plain text (already hashed above won't match)
-    // Use plain comparison instead:
     if (password !== TEACHER_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
     const teacherId = uuidv4();
-    const token = `${req.params.roomCode}-${teacherId}`;
-    res.json({ token, teacherId, teacherName });
+    res.json({ token: `${req.params.roomCode}-${teacherId}`, teacherId, teacherName });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/evaluate-response (AI scoring for live panel sessions)
 app.post('/api/evaluate-response', async (req, res) => {
   try {
     const { sessionId, questionIndex, transcript, questionText } = req.body;
     if (!transcript) return res.status(400).json({ error: 'transcript required' });
-
     const sessions = (await readJson('sessions.json')) || [];
     const session = sessions.find(s => s.id === sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
-    const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
-    const dimDescriptions = { clarity: 'Explains concepts clearly and jargon-free', reasoning: 'Logical structure and clear argumentation', depth: 'Knows internals, not just surface facts', confidence: 'Composed delivery with self-assurance' };
-
-    const prompt = `You are evaluating a student's verbal defense response.
-
-Student Project: ${session.projectTitle}
+    const prompt = `Evaluate this student's verbal defense response.
+Project: ${session.projectTitle}
 Question: ${questionText || 'General defense question'}
 Student Response: "${transcript}"
+Rate 1-5: clarity, reasoning, depth, confidence.
+Respond ONLY with JSON: {"clarity":N,"reasoning":N,"depth":N,"confidence":N}`;
 
-Rate the student 1-5 on each dimension:
-- Clarity: ${dimDescriptions.clarity}
-- Reasoning: ${dimDescriptions.reasoning}
-- Technical Depth: ${dimDescriptions.depth}
-- Confidence: ${dimDescriptions.confidence}
-
-Respond ONLY with valid JSON in this exact format, no explanation:
-{"clarity": N, "reasoning": N, "depth": N, "confidence": N}`;
-
-    const raw = await callOllama(prompt);
+    const raw = await callAI(prompt);
     let scores = { clarity: 3, reasoning: 3, depth: 3, confidence: 3 };
-    try {
-      const match = raw.match(/\{[\s\S]*?\}/);
-      if (match) scores = { ...scores, ...JSON.parse(match[0]) };
-    } catch {}
+    try { const m = raw.match(/\{[\s\S]*?\}/); if (m) scores = { ...scores, ...JSON.parse(m[0]) }; } catch {}
 
-    // Save AI score
-    if (session.aiScores) {
-      session.aiScores[questionIndex] = { ...scores, transcript, scoredAt: Date.now() };
-    }
-
-    // Update session in sessions.json
+    if (session.aiScores) session.aiScores[questionIndex] = { ...scores, transcript, scoredAt: Date.now() };
     const idx = sessions.findIndex(s => s.id === sessionId);
     if (idx !== -1) sessions[idx] = session;
     await writeJson('sessions.json', sessions);
-
     io.to(session.roomCode).emit('ai-score', { questionIndex, scores, transcript });
     res.json({ success: true, scores });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ─── Socket.io Logic ──────────────────────────────────────────────────────────
-
+// ─── Socket.io ────────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log('[socket] connected:', socket.id);
-
   socket.on('join-session', ({ roomCode, role, teacherId, teacherName }) => {
     if (!roomCode) return;
     socket.join(roomCode);
-    socket.data.roomCode = roomCode;
-    socket.data.role = role;
-    socket.data.teacherId = teacherId;
-    socket.data.teacherName = teacherName;
-
+    socket.data = { roomCode, role, teacherId, teacherName };
     if (role === 'teacher') {
-      // Add teacher to session
       (async () => {
-        try {
-          const sessions = (await readJson('sessions.json')) || [];
-          const idx = sessions.findIndex(s => s.roomCode === roomCode);
-          if (idx !== -1) {
-            const session = sessions[idx];
-            if (!session.teachers) session.teachers = [];
-            if (!session.teachers.find(t => t.teacherId === teacherId)) {
-              session.teachers.push({ teacherId, teacherName, joinedAt: Date.now() });
-            }
-            sessions[idx] = session;
-            await writeJson('sessions.json', sessions);
+        const sessions = (await readJson('sessions.json')) || [];
+        const idx = sessions.findIndex(s => s.roomCode === roomCode);
+        if (idx !== -1) {
+          const session = sessions[idx];
+          if (!session.teachers) session.teachers = [];
+          if (!session.teachers.find(t => t.teacherId === teacherId)) {
+            session.teachers.push({ teacherId, teacherName, joinedAt: Date.now() });
           }
-          const count = sessions.find(s => s.roomCode === roomCode)?.teachers?.length || 1;
+          sessions[idx] = session;
+          await writeJson('sessions.json', sessions);
+          const count = session.teachers.length;
           io.to(roomCode).emit('teacher-joined', { teacherId, teacherName, count });
-          // If student already there, notify teachers
-          socket.emit('teachers-list', { teachers: sessions.find(s => s.roomCode === roomCode)?.teachers || [] });
-        } catch (e) { console.error('[join-session teacher] error:', e); }
+          socket.emit('teachers-list', { teachers: session.teachers });
+        }
       })();
     }
+    if (role === 'student') io.to(roomCode).emit('student-ready', { studentName: socket.data.studentName });
+  });
 
-    if (role === 'student') {
-      io.to(roomCode).emit('student-ready', { studentName: socket.data.studentName });
+  socket.on('webrtc-offer', ({ roomCode, offer, teacherId }) => socket.to(roomCode).emit('webrtc-offer', { offer, forTeacherId: teacherId }));
+  socket.on('webrtc-answer', ({ roomCode, answer }) => socket.to(roomCode).emit('webrtc-answer', { answer }));
+  socket.on('webrtc-ice', ({ roomCode, candidate, toTeacherId }) => socket.to(roomCode).emit('webrtc-ice', { candidate, toTeacherId }));
+  socket.on('transcript-chunk', ({ roomCode, text, isFinal }) => socket.to(roomCode).emit('transcript-chunk', { text, isFinal }));
+
+  socket.on('phase-change', async ({ roomCode, phase, questionIndex }) => {
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx !== -1) { sessions[idx].phase = phase; sessions[idx].currentQuestionIndex = questionIndex; await writeJson('sessions.json', sessions); }
+    io.to(roomCode).emit('phase-changed', { phase, questionIndex });
+  });
+
+  socket.on('teacher-interrupt', async ({ roomCode, teacherId, teacherName, question }) => {
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx !== -1) {
+      if (!sessions[idx].panelQuestions) sessions[idx].panelQuestions = [];
+      sessions[idx].panelQuestions.push({ teacherId, teacherName, question, timestamp: Date.now(), answered: false });
+      await writeJson('sessions.json', sessions);
+    }
+    io.to(roomCode).emit('interrupt-fired', { teacherId, teacherName, question });
+  });
+
+  socket.on('teacher-score', async ({ roomCode, teacherId, questionIndex, scores, feedback }) => {
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx === -1) return;
+    const session = sessions[idx];
+    if (!session.teacherScores) session.teacherScores = {};
+    if (!session.teacherScores[teacherId]) session.teacherScores[teacherId] = {};
+    session.teacherScores[teacherId][questionIndex] = { scores, feedback, scoredAt: Date.now() };
+    const dims = ['clarity', 'reasoning', 'depth', 'ownership'];
+    const teacherIds = Object.keys(session.teacherScores);
+    const grid = {};
+    const flagged = [];
+    dims.forEach(dim => {
+      grid[dim] = {};
+      const vals = teacherIds.map(tid => session.teacherScores[tid][questionIndex]?.scores?.[dim]).filter(v => v != null);
+      teacherIds.forEach(tid => { grid[dim][tid] = session.teacherScores[tid][questionIndex]?.scores?.[dim] || null; });
+      if (vals.length >= 2) { const mean = vals.reduce((a, b) => a + b, 0) / vals.length; const std = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length); if (std > 1.0) flagged.push(dim); }
+    });
+    sessions[idx] = session;
+    await writeJson('sessions.json', sessions);
+    io.to(roomCode).emit('score-update', { questionIndex, grid, flagged, canClose: flagged.length === 0, teachers: session.teachers });
+  });
+
+  socket.on('resolve-disagreement', async ({ roomCode, questionIndex, dimension, finalScore, resolvingTeacherId, dissentReason }) => {
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx === -1) return;
+    if (!sessions[idx].disagreements) sessions[idx].disagreements = [];
+    const entry = { questionIndex, dimension, finalScore, resolvingTeacherId, dissentReason, resolvedAt: Date.now() };
+    const ei = sessions[idx].disagreements.findIndex(d => d.questionIndex === questionIndex && d.dimension === dimension);
+    if (ei !== -1) sessions[idx].disagreements[ei] = entry; else sessions[idx].disagreements.push(entry);
+    await writeJson('sessions.json', sessions);
+    io.to(roomCode).emit('disagreement-resolved', { questionIndex, dimension, finalScore });
+  });
+
+  socket.on('add-panel-question', async ({ roomCode, teacherId, teacherName, question }) => {
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx !== -1) {
+      if (!sessions[idx].panelQuestions) sessions[idx].panelQuestions = [];
+      sessions[idx].panelQuestions.push({ teacherId, teacherName, question, timestamp: Date.now(), answered: false });
+      await writeJson('sessions.json', sessions);
+      io.to(roomCode).emit('panel-question-added', { teacherId, teacherName, question });
     }
   });
 
-  // WebRTC signaling
-  socket.on('webrtc-offer', ({ roomCode, offer, teacherId }) => {
-    console.log('[socket] webrtc-offer to room', roomCode, 'for teacher', teacherId);
-    socket.to(roomCode).emit('webrtc-offer', { offer, forTeacherId: teacherId });
-  });
-
-  socket.on('webrtc-answer', ({ roomCode, answer, toTeacherId }) => {
-    console.log('[socket] webrtc-answer to room', roomCode);
-    socket.to(roomCode).emit('webrtc-answer', { answer, toTeacherId });
-  });
-
-  socket.on('webrtc-ice', ({ roomCode, candidate, toTeacherId }) => {
-    socket.to(roomCode).emit('webrtc-ice', { candidate, toTeacherId });
-  });
-
-  // Transcript streaming for live view
-  socket.on('transcript-chunk', ({ roomCode, text, isFinal }) => {
-    socket.to(roomCode).emit('transcript-chunk', { text, isFinal });
-  });
-
-  // Phase management
-  socket.on('phase-change', async ({ roomCode, phase, questionIndex }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx !== -1) {
-        sessions[idx].phase = phase;
-        sessions[idx].currentQuestionIndex = questionIndex;
-        await writeJson('sessions.json', sessions);
-      }
-      io.to(roomCode).emit('phase-changed', { phase, questionIndex });
-    } catch (e) { console.error('[phase-change] error:', e); }
-  });
-
-  // Teacher interrupt
-  socket.on('teacher-interrupt', async ({ roomCode, teacherId, teacherName, question }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx !== -1) {
-        const session = sessions[idx];
-        if (!session.panelQuestions) session.panelQuestions = [];
-        session.panelQuestions.push({ teacherId, teacherName, question, timestamp: Date.now(), answered: false });
-        if (!session.interruptions) session.interruptions = [];
-        session.interruptions.push({ teacherId, teacherName, question, timestamp: Date.now() });
-        sessions[idx] = session;
-        await writeJson('sessions.json', sessions);
-      }
-      io.to(roomCode).emit('interrupt-fired', { teacherId, teacherName, question });
-    } catch (e) { console.error('[teacher-interrupt] error:', e); }
-  });
-
-  // Teacher score submission
-  socket.on('teacher-score', async ({ roomCode, teacherId, questionIndex, scores, feedback }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx === -1) return;
-      const session = sessions[idx];
-      if (!session.teacherScores) session.teacherScores = {};
-      if (!session.teacherScores[teacherId]) session.teacherScores[teacherId] = {};
-      session.teacherScores[teacherId][questionIndex] = { scores, feedback, scoredAt: Date.now() };
-
-      // Compute disagreement across teachers for this question
-      const dims = ['clarity', 'reasoning', 'depth', 'ownership'];
-      const teacherIds = Object.keys(session.teacherScores);
-      const grid = {};
-      const flagged = [];
-      dims.forEach(dim => {
-        const vals = teacherIds.map(tid => session.teacherScores[tid][questionIndex]?.scores?.[dim]).filter(v => v != null);
-        grid[dim] = {};
-        teacherIds.forEach(tid => { grid[dim][tid] = session.teacherScores[tid][questionIndex]?.scores?.[dim] || null; });
-        if (vals.length >= 2) {
-          const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-          const stddev = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / vals.length);
-          if (stddev > 1.0) flagged.push(dim);
-        }
-      });
-
-      // Check resolved disagreements
-      if (!session.disagreements) session.disagreements = [];
-      const canClose = flagged.length === 0 || flagged.every(f => session.disagreements.find(d => d.questionIndex === questionIndex && d.dimension === f && d.resolved));
-
-      sessions[idx] = session;
-      await writeJson('sessions.json', sessions);
-
-      io.to(roomCode).emit('score-update', {
-        questionIndex,
-        grid,
-        flagged,
-        canClose,
-        teachers: session.teachers
-      });
-    } catch (e) { console.error('[teacher-score] error:', e); }
-  });
-
-  // Resolve disagreement
-  socket.on('resolve-disagreement', async ({ roomCode, questionIndex, dimension, finalScore, resolvingTeacherId, dissentReason }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx === -1) return;
-      const session = sessions[idx];
-      if (!session.disagreements) session.disagreements = [];
-      const existing = session.disagreements.findIndex(d => d.questionIndex === questionIndex && d.dimension === dimension);
-      const entry = { questionIndex, dimension, finalScore, resolvingTeacherId, dissentReason, resolvedAt: Date.now() };
-      if (existing !== -1) session.disagreements[existing] = entry;
-      else session.disagreements.push(entry);
-      sessions[idx] = session;
-      await writeJson('sessions.json', sessions);
-      io.to(roomCode).emit('disagreement-resolved', { questionIndex, dimension, finalScore });
-    } catch (e) { console.error('[resolve-disagreement] error:', e); }
-  });
-
-  // Add panel round question
-  socket.on('add-panel-question', async ({ roomCode, teacherId, teacherName, question }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx !== -1) {
-        const session = sessions[idx];
-        if (!session.panelQuestions) session.panelQuestions = [];
-        session.panelQuestions.push({ teacherId, teacherName, question, timestamp: Date.now(), answered: false });
-        sessions[idx] = session;
-        await writeJson('sessions.json', sessions);
-        io.to(roomCode).emit('panel-question-added', { teacherId, teacherName, question });
-      }
-    } catch (e) { console.error('[add-panel-question] error:', e); }
-  });
-
-  // Mark panel question answered
   socket.on('mark-panel-answered', async ({ roomCode, questionIndex }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx !== -1 && sessions[idx].panelQuestions) {
-        sessions[idx].panelQuestions[questionIndex].answered = true;
-        await writeJson('sessions.json', sessions);
-        io.to(roomCode).emit('panel-question-answered', { questionIndex });
-      }
-    } catch (e) { console.error('[mark-panel-answered] error:', e); }
-  });
-
-  // Session close
-  socket.on('session-close', async ({ roomCode }) => {
-    try {
-      const sessions = (await readJson('sessions.json')) || [];
-      const idx = sessions.findIndex(s => s.roomCode === roomCode);
-      if (idx === -1) return;
-      const session = sessions[idx];
-
-      const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
-      const allResponses = [];
-
-      // AI round scores (questions 0-9)
-      if (session.aiScores) {
-        Object.entries(session.aiScores).forEach(([qIdx, scoreData]) => {
-          allResponses.push({ source: 'ai', questionIndex: parseInt(qIdx), scores: scoreData });
-        });
-      }
-
-      // Panel questions (teacher scores, resolve disagreements)
-      if (session.panelQuestions && session.teacherScores) {
-        session.panelQuestions.forEach((pq, qIdx) => {
-          const teacherIds = Object.keys(session.teacherScores);
-          const resolvedScores = {};
-          dims.forEach(dim => {
-            const entry = session.disagreements?.find(d => d.questionIndex === qIdx && d.dimension === dim);
-            if (entry) {
-              resolvedScores[dim] = entry.finalScore;
-            } else {
-              const vals = teacherIds.map(tid => session.teacherScores[tid]?.[qIdx]?.scores?.[dim]).filter(v => v != null);
-              resolvedScores[dim] = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 3;
-            }
-          });
-          allResponses.push({ source: 'panel', questionIndex: qIdx, scores: resolvedScores, teacherId: pq.teacherId, teacherName: pq.teacherName });
-        });
-      }
-
-      // Compute final score
-      const aiResponses = allResponses.filter(r => r.source === 'ai');
-      const panelResponses = allResponses.filter(r => r.source === 'panel');
-      const avgDim = (responses) => {
-        const totals = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
-        responses.forEach(r => dims.forEach(d => { totals[d] += r.scores[d] || 0; }));
-        const count = responses.length * 4;
-        return count > 0 ? Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, parseFloat((v / responses.length).toFixed(2))])) : null;
-      };
-
-      const aiAvg = avgDim(aiResponses);
-      const panelAvg = avgDim(panelResponses);
-
-      let finalScores = null;
-      if (aiAvg && panelAvg) {
-        dims.forEach(d => {
-          finalScores[d] = parseFloat(((aiAvg[d] * 0.4) + (panelAvg[d] * 0.6)).toFixed(2));
-        });
-      } else if (aiAvg) {
-        finalScores = aiAvg;
-      } else if (panelAvg) {
-        finalScores = panelAvg;
-      }
-
-      const panelDisagreements = session.disagreements || [];
-
-      // Save to scores file
-      const scoreFileEntry = {
-        sessionId: session.id,
-        roomCode: session.roomCode,
-        timestamp: new Date().toISOString(),
-        sources: { ai: aiResponses.length, panel: panelResponses.length },
-        finalScores,
-        aiAvg,
-        panelAvg,
-        panelDisagreements,
-        teacherScores: session.teacherScores,
-        panelQuestions: session.panelQuestions
-      };
-      await writeJson(`scores_${session.studentId}_${session.id}.json`, scoreFileEntry);
-
-      // Update session phase
-      sessions[idx].phase = 'closed';
-      sessions[idx].finalScores = finalScores;
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx !== -1 && sessions[idx].panelQuestions?.[questionIndex]) {
+      sessions[idx].panelQuestions[questionIndex].answered = true;
       await writeJson('sessions.json', sessions);
-
-      io.to(roomCode).emit('session-closed', { finalScores, coachingFlags: panelDisagreements.map(d => d.dimension) });
-    } catch (e) { console.error('[session-close] error:', e); }
+      io.to(roomCode).emit('panel-question-answered', { questionIndex });
+    }
   });
 
-  socket.on('disconnect', () => {
-    console.log('[socket] disconnected:', socket.id);
+  socket.on('student-answered', (data) => socket.to(data.roomCode).emit('student-answered', data));
+
+  socket.on('session-close', async ({ roomCode }) => {
+    const sessions = (await readJson('sessions.json')) || [];
+    const idx = sessions.findIndex(s => s.roomCode === roomCode);
+    if (idx === -1) return;
+    const session = sessions[idx];
+    sessions[idx].phase = 'closed';
+    await writeJson('sessions.json', sessions);
+    io.to(roomCode).emit('session-closed', { finalScores: session.aiScores });
   });
+
+  socket.on('disconnect', () => {});
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
-
 httpServer.listen(PORT, () => {
-  console.log(`Defense Rehearsal App running at http://localhost:${PORT}`);
+  console.log(`PDRS running at http://localhost:${PORT}`);
+  console.log(`AI Provider: ${USE_CLAUDE ? 'Claude API ✓' : 'Ollama (set ANTHROPIC_API_KEY to use Claude)'}`);
 });

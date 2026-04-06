@@ -1,0 +1,22 @@
+{
+  "studentId": "test_1775505115773",
+  "generatedAt": "2026-04-06T19:54:35.883Z",
+  "questions": {
+    "tier1": [
+      "What does your system do?",
+      "What are the main components?"
+    ],
+    "tier2": [
+      "Why did you choose this approach?",
+      "What alternatives did you consider?",
+      "What are the tradeoffs?",
+      "How does it compare to alternatives?",
+      "What would you do differently?"
+    ],
+    "tier3": [
+      "What breaks under load?",
+      "What are the failure points?",
+      "How do you handle errors?"
+    ]
+  }
+}

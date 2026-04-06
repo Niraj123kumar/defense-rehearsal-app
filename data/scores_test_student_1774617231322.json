@@ -1,0 +1,128 @@
+[
+  {
+    "session": 1,
+    "timestamp": "2026-04-06T20:01:19.642Z",
+    "responses": [
+      {
+        "questionIndex": 0,
+        "question": "What does your system do?",
+        "tier": 1,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 1,
+        "question": "What are the main components?",
+        "tier": 1,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 2,
+        "question": "Why did you choose this approach?",
+        "tier": 2,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 3,
+        "question": "What alternatives did you consider?",
+        "tier": 2,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 4,
+        "question": "What are the tradeoffs?",
+        "tier": 2,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 5,
+        "question": "How does it compare to alternatives?",
+        "tier": 2,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 6,
+        "question": "What would you do differently?",
+        "tier": 2,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 7,
+        "question": "What breaks under load?",
+        "tier": 3,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 8,
+        "question": "What are the failure points?",
+        "tier": 3,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      },
+      {
+        "questionIndex": 9,
+        "question": "How do you handle errors?",
+        "tier": 3,
+        "response": "",
+        "scores": {
+          "clarity": 0,
+          "reasoning": 0,
+          "depth": 0,
+          "confidence": 0
+        }
+      }
+    ]
+  }
+]

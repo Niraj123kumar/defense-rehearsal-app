@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Live Session — PDRS</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
   <script src="nav.js" data-page="session-create"></script>
@@ -14,156 +13,163 @@
     <div class="page-wrapper" style="max-width:680px;">
 
       <div class="page-header">
-        <h1>🎙️ Create Live Panel Session</h1>
-        <p>Set up a real-time panel viva with 1 student + up to 4 teachers.</p>
+        <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">LIVE PANEL SESSION</p>
+        <h1>🎙 Create Session</h1>
+        <p style="color:var(--text-muted);">Host a real-time defense with faculty panelists who score and interrupt live.</p>
       </div>
 
       <div id="msg"></div>
 
-      <!-- Setup Card -->
-      <div class="card card-static" id="setup-card">
-        <h2 style="font-size:1.125rem; margin-bottom:20px;">Session Configuration</h2>
-
+      <!-- Step 1: Select student -->
+      <div id="step-select" class="card card-static" style="margin-bottom:var(--sp-3);">
+        <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">1. Select Student</h2>
         <div class="form-group">
-          <label for="student-select">Select Student *</label>
           <select id="student-select">
-            <option value="">— Choose a student —</option>
+            <option value="">Loading students...</option>
           </select>
         </div>
-
-        <div id="student-preview" style="display:none; padding:14px; background:var(--bg-elevated); border-radius:10px; margin-bottom:16px; font-size:0.9rem;"></div>
-
-        <div class="form-group">
-          <label for="teacher-emails">Teacher Emails (optional, for display only)</label>
-          <input type="text" id="teacher-emails" placeholder="e.g. prof@college.edu, hod@college.edu" autocomplete="off">
+        <div id="student-info" style="display:none; background:var(--bg-elevated); border-radius:var(--radius-md); padding:14px; margin-top:8px;">
+          <div style="font-weight:600;" id="sel-name"></div>
+          <div style="font-size:0.875rem; color:var(--text-muted);" id="sel-title"></div>
+          <div id="sel-warning" style="display:none; margin-top:8px; font-size:0.8125rem; color:var(--accent-orange);">⚠ No questions generated yet. <a id="sel-gen-link" href="#" style="color:var(--accent-indigo);">Generate questions first →</a></div>
         </div>
-
-        <div id="questions-warning" style="display:none;" class="msg-error">
-          This student doesn't have questions generated yet. Go to AI Questions and generate them first.
-        </div>
-
-        <button class="btn btn-primary" id="create-btn" style="margin-top:8px;">
-          Create Session
-        </button>
       </div>
 
-      <!-- Success Card -->
-      <div class="card card-static" id="success-card" style="display:none;">
-        <div style="text-align:center; margin-bottom:24px;">
-          <svg width="64" height="64" viewBox="0 0 80 80" fill="none" style="margin:0 auto 16px;">
-            <circle cx="40" cy="40" r="36" stroke="var(--accent-emerald)" stroke-width="2" stroke-dasharray="240" stroke-dashoffset="0" style="animation:draw-circle 600ms ease 100ms both;"/>
-            <path d="M24 42 L34 52 L56 30" stroke="var(--accent-emerald)" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="60" stroke-dashoffset="0" style="animation:draw-check 400ms ease 600ms both;"/>
-          </svg>
+      <!-- Step 2: Session info -->
+      <div id="step-info" class="card card-static" style="margin-bottom:var(--sp-3);">
+        <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">2. How it works</h2>
+        <div style="display:grid; gap:12px;">
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:32px; height:32px; background:var(--accent-indigo-dim); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent-indigo);">1</div>
+            <div><strong>Create</strong> — generates a room code for the session.</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:32px; height:32px; background:var(--accent-indigo-dim); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent-indigo);">2</div>
+            <div><strong>Share</strong> — send the teacher invite link to faculty panelists. They join with the faculty password.</div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <div style="width:32px; height:32px; background:var(--accent-indigo-dim); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent-indigo);">3</div>
+            <div><strong>Defend</strong> — student joins the student view, teachers score and interrupt in real-time.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create button -->
+      <div style="text-align:center; margin-bottom:var(--sp-4);">
+        <button class="btn btn-primary btn-lg" id="create-btn" onclick="createSession()" disabled>Create Live Session →</button>
+      </div>
+
+      <!-- Session created -->
+      <div id="session-created" style="display:none;">
+        <div class="card card-static" style="text-align:center; margin-bottom:var(--sp-3);">
+          <div style="font-size:2rem; margin-bottom:12px;">🎙</div>
           <h2 style="margin-bottom:8px;">Session Created!</h2>
-          <p style="color:var(--text-muted);">Share the links below to invite teachers and the student.</p>
-        </div>
+          <div style="font-family:var(--font-mono); font-size:3rem; font-weight:700; color:var(--accent-indigo); letter-spacing:0.1em; margin-bottom:16px;" id="room-code-display">——</div>
+          <p style="color:var(--text-muted); margin-bottom:var(--sp-3);">Share the teacher link and room code with faculty panelists.</p>
 
-        <!-- Room Code -->
-        <div style="text-align:center; background:var(--bg-elevated); border-radius:16px; padding:24px; margin-bottom:20px;">
-          <div style="font-size:0.8rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Room Code</div>
-          <div id="room-code-display" style="font-family:var(--font-mono); font-size:3rem; font-weight:700; letter-spacing:0.15em; color:var(--accent-indigo); margin-bottom:16px;"></div>
-          <button class="btn btn-secondary btn-sm" id="copy-code-btn">📋 Copy Code</button>
-        </div>
+          <div style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:16px; margin-bottom:var(--sp-3); text-align:left;">
+            <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); margin-bottom:8px;">TEACHER INVITE LINK</div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <code id="teacher-link" style="flex:1; font-size:0.8125rem; color:var(--accent-indigo); word-break:break-all;"></code>
+              <button class="btn btn-secondary btn-sm" onclick="copyLink()">Copy</button>
+            </div>
+          </div>
 
-        <!-- Teacher Invite -->
-        <div style="margin-bottom:20px;">
-          <label style="font-size:0.875rem; font-weight:500; margin-bottom:8px; display:block;">Teacher Invite Link</label>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <input type="text" id="invite-url" readonly style="flex:1; font-size:0.8125rem; margin-bottom:0;">
-            <button class="btn btn-secondary btn-sm" id="copy-url-btn">Copy</button>
+          <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:var(--radius-md); padding:14px; margin-bottom:var(--sp-3); text-align:left;">
+            <div style="font-size:0.8125rem; color:var(--accent-orange);">⚠ Default faculty password: <code style="font-family:var(--font-mono);">faculty2024</code> — set TEACHER_PASSWORD env var in production.</div>
           </div>
-          <div style="margin-top:12px; text-align:center;">
-            <canvas id="qr-canvas" width="180" height="180"></canvas>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Scan to join as teacher</div>
-          </div>
-        </div>
 
-        <!-- Student View -->
-        <div style="margin-bottom:16px;">
-          <label style="font-size:0.875rem; font-weight:500; margin-bottom:8px; display:block;">Student View</label>
-          <div style="display:flex; gap:10px;">
-            <a id="student-view-link" class="btn btn-primary" target="_blank">📹 Open Student View</a>
-            <button class="btn btn-secondary" id="copy-student-btn">Copy Link</button>
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <a id="join-as-student-btn" href="#" class="btn btn-primary btn-lg">Join as Student →</a>
+            <a id="join-as-teacher-btn" href="#" class="btn btn-secondary btn-lg">Join as Teacher</a>
           </div>
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Share this with the student. They will need Google Chrome for speech recognition.</p>
         </div>
       </div>
 
     </div>
   </main>
 
-  <style>
-    @keyframes draw-circle { from { stroke-dashoffset: 240; } to { stroke-dashoffset: 0; } }
-    @keyframes draw-check { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
-  </style>
-
   <script>
+    let students = [];
+
     async function loadStudents() {
       try {
         const res = await fetch('/api/students');
-        const students = await res.json();
+        students = await res.json();
         const sel = document.getElementById('student-select');
-        students.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = `${s.name} — ${s.title}`;
-          sel.appendChild(opt);
-        });
+        if (!students.length) {
+          sel.innerHTML = '<option value="">No students registered yet</option>';
+          return;
+        }
+        sel.innerHTML = '<option value="">— Select a student —</option>' +
+          students.map(s => `<option value="${s.id}">${s.name} — ${s.title}</option>`).join('');
+        sel.addEventListener('change', onStudentSelect);
       } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">${e.message}</div>`;
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load students: ${e.message}</div>`;
       }
     }
 
-    document.getElementById('student-select').addEventListener('change', async (e) => {
-      const preview = document.getElementById('student-preview');
-      const warning = document.getElementById('questions-warning');
-      if (!e.target.value) { preview.style.display = 'none'; return; }
-      try {
-        const [studentRes, qRes] = await Promise.all([
-          fetch(`/api/students/${e.target.value}`),
-          fetch(`/api/questions/${e.target.value}`).catch(() => null)
-        ]);
-        const student = await studentRes.json();
-        const hasQ = qRes && qRes.ok;
-        preview.style.display = 'block';
-        preview.innerHTML = `<strong>${student.name}</strong> · ${student.branch || ''} · ${student.year || ''}<br><span style="color:${hasQ ? 'var(--accent-emerald)' : 'var(--accent-orange)'}; font-size:0.8rem;">${hasQ ? '✓ Questions ready' : '⚠ No questions — generate them first'}</span>`;
-        warning.style.display = hasQ ? 'none' : 'block';
-      } catch {}
-    });
+    function onStudentSelect() {
+      const id = document.getElementById('student-select').value;
+      const info = document.getElementById('student-info');
+      const btn = document.getElementById('create-btn');
+      if (!id) { info.style.display = 'none'; btn.disabled = true; return; }
+      const s = students.find(st => st.id === id);
+      if (!s) return;
+      document.getElementById('sel-name').textContent = s.name;
+      document.getElementById('sel-title').textContent = s.title;
+      const warn = document.getElementById('sel-warning');
+      if (!s.questionsGenerated) {
+        warn.style.display = 'block';
+        document.getElementById('sel-gen-link').href = `questions.html?id=${id}`;
+        btn.disabled = true;
+      } else {
+        warn.style.display = 'none';
+        btn.disabled = false;
+      }
+      info.style.display = 'block';
+    }
 
-    document.getElementById('create-btn').addEventListener('click', async () => {
+    async function createSession() {
       const studentId = document.getElementById('student-select').value;
-      if (!studentId) { document.getElementById('msg').innerHTML = '<div class="msg-error">Please select a student.</div>'; return; }
+      if (!studentId) return;
       const btn = document.getElementById('create-btn');
       btn.disabled = true;
       btn.textContent = 'Creating...';
-      const emails = document.getElementById('teacher-emails').value.trim();
+
       try {
         const res = await fetch('/api/sessions/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentId, teacherEmails: emails ? emails.split(',').map(e => e.trim()) : [] })
+          body: JSON.stringify({ studentId })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-        showSuccess(data);
-      } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Error: ${e.message}</div>`;
-        btn.disabled = false; btn.textContent = 'Create Session';
-      }
-    });
 
-    function showSuccess(data) {
-      document.getElementById('setup-card').style.display = 'none';
-      document.getElementById('success-card').style.display = 'block';
-      document.getElementById('room-code-display').textContent = data.roomCode;
-      const studentUrl = `http://localhost:3000/session-host.html?room=${data.roomCode}`;
-      document.getElementById('invite-url').value = data.teacherInviteUrl;
-      document.getElementById('student-view-link').href = studentUrl;
-      document.getElementById('copy-student-btn').onclick = () => { navigator.clipboard.writeText(studentUrl); document.getElementById('copy-student-btn').textContent = 'Copied!'; setTimeout(() => document.getElementById('copy-student-btn').textContent = 'Copy Link', 1500); };
-      document.getElementById('copy-code-btn').onclick = () => { navigator.clipboard.writeText(data.roomCode); document.getElementById('copy-code-btn').textContent = 'Copied!'; setTimeout(() => document.getElementById('copy-code-btn').textContent = 'Copy Code', 1500); };
-      document.getElementById('copy-url-btn').onclick = () => { navigator.clipboard.writeText(data.teacherInviteUrl); document.getElementById('copy-url-btn').textContent = 'Copied!'; setTimeout(() => document.getElementById('copy-url-btn').textContent = 'Copy', 1500); };
-      QRCode.toCanvas(document.getElementById('qr-canvas'), data.teacherInviteUrl, { width: 180, margin: 2, color: { dark: '#6366F1', light: '#0A0A0F' } }, () => {});
+        document.getElementById('room-code-display').textContent = data.roomCode;
+        const teacherUrl = `${window.location.origin}/teacher.html?room=${data.roomCode}`;
+        const studentUrl = `${window.location.origin}/session-host.html?room=${data.roomCode}`;
+        document.getElementById('teacher-link').textContent = teacherUrl;
+        document.getElementById('join-as-student-btn').href = studentUrl;
+        document.getElementById('join-as-teacher-btn').href = teacherUrl;
+        document.getElementById('session-created').style.display = 'block';
+        document.getElementById('step-select').style.display = 'none';
+        document.getElementById('step-info').style.display = 'none';
+        btn.style.display = 'none';
+      } catch (e) {
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to create session: ${e.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Create Live Session →';
+      }
+    }
+
+    function copyLink() {
+      const link = document.getElementById('teacher-link').textContent;
+      navigator.clipboard.writeText(link).then(() => {
+        const btn = event.target;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
     }
 
     loadStudents();

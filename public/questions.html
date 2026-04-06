@@ -12,239 +12,237 @@
   <main class="main-content">
     <div class="page-wrapper">
 
-      <div class="page-header">
-        <h1>AI Question Generation</h1>
-        <p>Select a student and generate 10 targeted defense questions via Ollama.</p>
+      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+        <div>
+          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">STEP 2 OF 4</p>
+          <h1 id="page-title">AI Questions</h1>
+          <p id="page-subtitle" style="color:var(--text-muted);">Loading...</p>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <a id="defense-btn" href="#" class="btn btn-primary" style="display:none;">Start Defense Session →</a>
+          <button id="regenerate-btn" class="btn btn-secondary" style="display:none;" onclick="generateQuestions()">↻ Regenerate</button>
+        </div>
       </div>
 
       <div id="msg"></div>
 
-      <!-- Selector -->
-      <div class="card card-static" style="margin-bottom:24px;">
-        <div class="form-group" style="margin-bottom:16px;">
-          <label for="student-select">Select Student</label>
-          <select id="student-select">
-            <option value="">— Choose a student —</option>
-          </select>
-        </div>
-
-        <div id="student-preview" style="display:none; padding:16px; background:var(--bg-elevated); border-radius:12px; margin-bottom:16px;"></div>
-
-        <button class="btn btn-primary" id="generate-btn">Generate Questions via AI</button>
-      </div>
-
-      <!-- Skeleton Loader -->
-      <div id="skeleton-loader" style="display:none;">
-        <div style="margin-bottom:32px;">
-          <div class="skeleton skeleton-title" style="width:200px; margin-bottom:16px;"></div>
-          <div id="skel-tier1"></div>
-        </div>
-        <div style="margin-bottom:32px;">
-          <div class="skeleton skeleton-title" style="width:200px; margin-bottom:16px;"></div>
-          <div id="skel-tier2"></div>
-        </div>
-        <div style="margin-bottom:32px;">
-          <div class="skeleton skeleton-title" style="width:200px; margin-bottom:16px;"></div>
-          <div id="skel-tier3"></div>
+      <!-- Student not found -->
+      <div id="no-student" style="display:none;" class="empty-state">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="40" cy="32" r="14" stroke-opacity="0.5"/><path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/></svg>
+        <h3>No student selected</h3>
+        <p>Select a student from the dashboard or register a new one.</p>
+        <div style="display:flex; gap:12px;">
+          <a href="dashboard.html" class="btn btn-primary btn-sm">View Dashboard</a>
+          <a href="onboarding.html" class="btn btn-secondary btn-sm">Register Student</a>
         </div>
       </div>
 
-      <!-- Questions Output -->
-      <div id="questions-output" style="display:none;">
-        <div class="card card-static">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
-            <div>
-              <h2 style="font-size:1.25rem; margin-bottom:4px;">Generated Questions</h2>
-              <p style="font-size:0.875rem; color:var(--text-muted);" id="q-student-name"></p>
-            </div>
-            <a id="start-defense-btn" class="btn btn-primary btn-sm">Start Defense →</a>
-          </div>
+      <!-- Generate panel -->
+      <div id="generate-panel" class="card card-static" style="display:none; margin-bottom:var(--sp-3);">
+        <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Generate Questions</h2>
 
-          <!-- Tier 1 -->
-          <div class="tier-section">
-            <div class="tier-header tier-1">
-              <span class="badge badge-blue">Tier 1</span>
-              <h3>Surface Clarity</h3>
-            </div>
-            <div id="tier1-questions"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:var(--sp-3);">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Focus Tier</label>
+            <select id="focus-tier">
+              <option value="">All tiers (recommended)</option>
+              <option value="tier1">Tier 1 — Surface Clarity only</option>
+              <option value="tier2">Tier 2 — Design Tradeoffs only</option>
+              <option value="tier3">Tier 3 — Failure Modes only</option>
+            </select>
           </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Session Mode</label>
+            <select id="session-mode">
+              <option value="full">Full session (all 10 questions)</option>
+              <option value="quick">Quick drill (5 questions)</option>
+              <option value="custom">Custom focus</option>
+            </select>
+          </div>
+        </div>
 
-          <!-- Tier 2 -->
-          <div class="tier-section">
-            <div class="tier-header tier-2">
-              <span class="badge badge-indigo">Tier 2</span>
-              <h3>Design Tradeoffs</h3>
-            </div>
-            <div id="tier2-questions"></div>
-          </div>
+        <button class="btn btn-primary" id="gen-btn" onclick="generateQuestions()">
+          🤖 Generate Questions with AI
+        </button>
+      </div>
 
-          <!-- Tier 3 -->
-          <div class="tier-section">
-            <div class="tier-header tier-3">
-              <span class="badge badge-orange">Tier 3</span>
-              <h3>Failure Modes</h3>
-            </div>
-            <div id="tier3-questions"></div>
-          </div>
+      <!-- Loading -->
+      <div id="loading" style="display:none;">
+        <div class="card card-static" style="text-align:center; padding:var(--sp-5);">
+          <div style="font-size:2rem; margin-bottom:16px; animation:spin 2s linear infinite; display:inline-block;">⚙</div>
+          <h3 style="margin-bottom:8px;">AI is generating questions...</h3>
+          <p id="loading-msg" style="color:var(--text-muted); font-size:0.875rem;">Analyzing your architecture decisions</p>
         </div>
       </div>
 
-      <!-- Empty State -->
-      <div id="empty-state" class="empty-state">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <rect x="10" y="10" width="60" height="60" rx="8" stroke-opacity="0.3"/>
-          <path d="M25 30h30M25 40h20M25 50h25" stroke-opacity="0.5" stroke-linecap="round"/>
-          <circle cx="55" cy="55" r="12" stroke-opacity="0.6"/>
-          <path d="M50 55l4 4 7-7" stroke-opacity="0.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3>No questions generated yet</h3>
-        <p>Select a student above and click "Generate Questions via AI" to create a personalized question set.</p>
+      <!-- Questions display -->
+      <div id="questions-container" style="display:none;">
+
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--sp-3); flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span class="badge badge-emerald">✓ Questions Ready</span>
+            <span id="gen-time" style="font-size:0.8rem; color:var(--text-muted);"></span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="printQuestions()">📄 Export PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="generateQuestions()">↻ Regenerate</button>
+          </div>
+        </div>
+
+        <!-- Tier 1 -->
+        <div class="tier-section" id="tier1-section">
+          <div class="tier-header tier-1">
+            <h3>Tier 1 — Surface Clarity</h3>
+            <span class="badge badge-blue" id="t1-count">2 questions</span>
+          </div>
+          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Basic understanding and ability to explain the project clearly.</p>
+          <div id="tier1-questions"></div>
+        </div>
+
+        <!-- Tier 2 -->
+        <div class="tier-section" id="tier2-section">
+          <div class="tier-header tier-2">
+            <h3>Tier 2 — Design Tradeoffs</h3>
+            <span class="badge badge-indigo" id="t2-count">5 questions</span>
+          </div>
+          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Probing the reasoning behind architectural decisions and tradeoffs.</p>
+          <div id="tier2-questions"></div>
+        </div>
+
+        <!-- Tier 3 -->
+        <div class="tier-section" id="tier3-section">
+          <div class="tier-header tier-3">
+            <h3>Tier 3 — Failure Modes</h3>
+            <span class="badge badge-orange" id="t3-count">3 questions</span>
+          </div>
+          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Testing awareness of limitations, failure scenarios, and edge cases.</p>
+          <div id="tier3-questions"></div>
+        </div>
+
+        <!-- CTA -->
+        <div style="text-align:center; padding:var(--sp-4) 0; border-top:1px solid var(--border-subtle); margin-top:var(--sp-3);">
+          <h3 style="margin-bottom:8px;">Ready to practice?</h3>
+          <p style="color:var(--text-muted); margin-bottom:var(--sp-3); font-size:0.9375rem;">Answer these questions one by one and get scored by AI on 4 dimensions.</p>
+          <a id="start-defense-btn" href="#" class="btn btn-primary btn-lg">Start Defense Session →</a>
+        </div>
+
       </div>
 
     </div>
   </main>
 
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .q-num { font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-right:8px; flex-shrink:0; }
+  </style>
+
   <script>
-    let currentStudentId = null;
+    const params = new URLSearchParams(window.location.search);
+    const studentId = params.get('id');
+    let currentStudent = null;
 
-    function showSkeletons(show) {
-      document.getElementById('skeleton-loader').style.display = show ? 'block' : 'none';
-      document.getElementById('questions-output').style.display = 'none';
-      document.getElementById('empty-state').style.display = show ? 'none' : 'flex';
-      if (show) {
-        // Populate skeleton cards
-        ['skel-tier1', 'skel-tier2', 'skel-tier3'].forEach(id => {
-          const el = document.getElementById(id);
-          el.innerHTML = '';
-          const count = id === 'skel-tier1' ? 2 : id === 'skel-tier2' ? 5 : 3;
-          for (let i = 0; i < count; i++) {
-            const block = document.createElement('div');
-            block.className = 'skeleton skeleton-block';
-            el.appendChild(block);
-          }
-        });
-      }
-    }
-
-    async function loadStudents() {
-      try {
-        const res = await fetch('/api/students');
-        const students = await res.json();
-        const select = document.getElementById('student-select');
-        students.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = `${s.name} — ${s.title}`;
-          select.appendChild(opt);
-        });
-        if (students.length === 0) {
-          document.getElementById('empty-state').style.display = 'flex';
-        }
-      } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load students: ${e.message}</div>`;
-      }
-    }
-
-    document.getElementById('student-select').addEventListener('change', async (e) => {
-      currentStudentId = e.target.value;
-      const preview = document.getElementById('student-preview');
-      const output = document.getElementById('questions-output');
-      const empty = document.getElementById('empty-state');
-
-      if (!currentStudentId) {
-        preview.style.display = 'none';
-        output.style.display = 'none';
-        empty.style.display = 'flex';
-        return;
-      }
+    async function init() {
+      if (!studentId) { document.getElementById('no-student').style.display = 'flex'; return; }
 
       try {
-        const [studentRes, qRes] = await Promise.all([
-          fetch(`/api/students/${currentStudentId}`),
-          fetch(`/api/questions/${currentStudentId}`).catch(() => null)
-        ]);
-        const student = await studentRes.json();
-        const questions = qRes && qRes.ok ? await qRes.json() : null;
+        const res = await fetch(`/api/students/${studentId}`);
+        if (!res.ok) throw new Error('Student not found');
+        currentStudent = await res.json();
 
-        preview.style.display = 'block';
-        const status = questions
-          ? '<span style="color:var(--accent-emerald);">● Questions ready</span>'
-          : '<span style="color:var(--accent-orange);">● No questions yet</span>';
-        preview.innerHTML = `
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div>
-              <div style="font-weight:600; margin-bottom:4px;">${student.name}</div>
-              <div style="font-size:0.8125rem; color:var(--text-muted);">${student.title} · ${student.branch || ''} ${student.year ? '· ' + student.year : ''}</div>
-            </div>
-            ${status}
-          </div>
-        `;
+        document.getElementById('page-title').textContent = `Questions — ${currentStudent.name}`;
+        document.getElementById('page-subtitle').textContent = currentStudent.title;
+        document.getElementById('defense-btn').href = `defense.html?id=${studentId}`;
+        document.getElementById('start-defense-btn').href = `defense.html?id=${studentId}`;
 
-        if (questions) {
-          renderQuestions(questions.questions, student.name, student.id);
-          empty.style.display = 'none';
+        // Try to load existing questions
+        const qRes = await fetch(`/api/questions/${studentId}`);
+        if (qRes.ok) {
+          const qData = await qRes.json();
+          displayQuestions(qData);
+          document.getElementById('regenerate-btn').style.display = 'inline-flex';
+          document.getElementById('defense-btn').style.display = 'inline-flex';
         } else {
-          output.style.display = 'none';
-          empty.style.display = 'flex';
+          document.getElementById('generate-panel').style.display = 'block';
         }
       } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Error: ${e.message}</div>`;
+        document.getElementById('no-student').style.display = 'flex';
       }
-    });
-
-    function renderQuestions(questions, studentName, studentId) {
-      const output = document.getElementById('questions-output');
-      output.style.display = 'block';
-      document.getElementById('q-student-name').textContent = `Questions for ${studentName}`;
-      document.getElementById('start-defense-btn').href = `defense.html?student=${studentId}`;
-
-      ['tier1', 'tier2', 'tier3'].forEach(tier => {
-        const el = document.getElementById(`${tier}-questions`);
-        el.innerHTML = '';
-        const tierNum = tier.replace('tier', '');
-        (questions[tier] || []).forEach(q => {
-          const div = document.createElement('div');
-          div.className = `question-card tier-${tierNum}`;
-          div.innerHTML = `
-            <span class="q-text">${q}</span>
-            <span class="q-badge badge badge-${tierNum === '1' ? 'blue' : tierNum === '2' ? 'indigo' : 'orange'}">T${tierNum}</span>
-          `;
-          el.appendChild(div);
-        });
-      });
     }
 
-    document.getElementById('generate-btn').addEventListener('click', async () => {
-      if (!currentStudentId) {
-        document.getElementById('msg').innerHTML = '<div class="msg-error">Please select a student first.</div>';
-        return;
-      }
+    const loadingMsgs = [
+      'Analyzing your architecture decisions...',
+      'Crafting tier 1 clarity questions...',
+      'Probing design tradeoffs...',
+      'Identifying failure scenarios...',
+      'Almost done...'
+    ];
 
-      const btn = document.getElementById('generate-btn');
-      const msg = document.getElementById('msg');
-      btn.disabled = true;
-      msg.innerHTML = '';
-      showSkeletons(true);
+    async function generateQuestions() {
+      if (!currentStudent) return;
+      document.getElementById('generate-panel').style.display = 'none';
+      document.getElementById('questions-container').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('msg').innerHTML = '';
+
+      // Cycle loading messages
+      let mi = 0;
+      const msgEl = document.getElementById('loading-msg');
+      const msgInterval = setInterval(() => { msgEl.textContent = loadingMsgs[mi++ % loadingMsgs.length]; }, 2500);
 
       try {
-        const res = await fetch(`/api/generate-questions/${currentStudentId}`, { method: 'POST' });
+        const res = await fetch(`/api/generate-questions/${studentId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ focusTier: document.getElementById('focus-tier')?.value || '' })
+        });
         const data = await res.json();
-
+        clearInterval(msgInterval);
         if (!res.ok) throw new Error(data.error || 'Generation failed');
-
-        msg.innerHTML = '<div class="msg-success">✓ Questions generated successfully!</div>';
-        showSkeletons(false);
-        renderQuestions(data.questions);
+        document.getElementById('loading').style.display = 'none';
+        displayQuestions({ questions: data.questions, generatedAt: new Date().toISOString() });
+        document.getElementById('regenerate-btn').style.display = 'inline-flex';
+        document.getElementById('defense-btn').style.display = 'inline-flex';
       } catch (e) {
-        showSkeletons(false);
-        document.getElementById('empty-state').style.display = 'flex';
-        msg.innerHTML = `<div class="msg-error">${e.message}</div>`;
-      } finally {
-        btn.disabled = false;
+        clearInterval(msgInterval);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('generate-panel').style.display = 'block';
+        document.getElementById('msg').innerHTML = `<div class="msg-error">⚠ ${e.message}. Check that your AI provider (Ollama or Claude API) is running.</div>`;
       }
-    });
+    }
 
-    loadStudents();
+    function displayQuestions(qData) {
+      const { questions, generatedAt } = qData;
+      document.getElementById('questions-container').style.display = 'block';
+
+      if (generatedAt) {
+        const d = new Date(generatedAt);
+        document.getElementById('gen-time').textContent = `Generated ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+      }
+
+      renderTier('tier1-questions', questions.tier1 || [], 't1-count', 'tier-1');
+      renderTier('tier2-questions', questions.tier2 || [], 't2-count', 'tier-2');
+      renderTier('tier3-questions', questions.tier3 || [], 't3-count', 'tier-3');
+    }
+
+    function renderTier(containerId, questions, countId, tierClass) {
+      const el = document.getElementById(containerId);
+      document.getElementById(countId).textContent = `${questions.length} question${questions.length !== 1 ? 's' : ''}`;
+      if (!questions.length) {
+        el.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem; padding:12px;">No questions in this tier.</p>';
+        return;
+      }
+      el.innerHTML = questions.map((q, i) => `
+        <div class="question-card ${tierClass}" style="display:flex; align-items:flex-start; gap:10px;">
+          <span class="q-num">Q${i+1}</span>
+          <span class="q-text">${q}</span>
+        </div>`).join('');
+    }
+
+    function printQuestions() {
+      window.print();
+    }
+
+    init();
   </script>
 </body>
 </html>

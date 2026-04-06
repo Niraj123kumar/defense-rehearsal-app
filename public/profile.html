@@ -13,277 +13,237 @@
   <main class="main-content">
     <div class="page-wrapper">
 
-      <div id="msg"></div>
-
-      <!-- Header -->
-      <div id="profile-header" style="display:none;">
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:32px;">
-          <div>
-            <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;" id="sessions-badge"></p>
-            <h1 id="profile-name" style="font-size:2rem; margin-bottom:4px;"></h1>
-            <p style="color:var(--text-muted);" id="profile-project"></p>
-          </div>
-          <a href="dashboard.html" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+        <div>
+          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">PROGRESS PROFILE</p>
+          <h1 id="page-title">Student Profile</h1>
+          <p id="page-subtitle" style="color:var(--text-muted);">Loading...</p>
         </div>
-
-        <!-- Skeleton -->
-        <div id="profile-skeleton" style="display:none;">
-          <div class="skeleton skeleton-title" style="width:300px; margin-bottom:32px;"></div>
-          <div class="skeleton" style="height:240px; border-radius:16px; margin-bottom:24px;"></div>
-          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;">
-            <div class="skeleton" style="height:80px; border-radius:12px;"></div>
-            <div class="skeleton" style="height:80px; border-radius:12px;"></div>
-            <div class="skeleton" style="height:80px; border-radius:12px;"></div>
-            <div class="skeleton" style="height:80px; border-radius:12px;"></div>
-          </div>
-        </div>
-
-        <!-- Content -->
-        <div id="profile-content" style="display:none;">
-
-          <!-- Trajectory Chart -->
-          <div class="card card-static" style="margin-bottom:24px;">
-            <h2 style="font-size:1rem; margin-bottom:4px;">📈 Score Trajectory</h2>
-            <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:20px;">Your average score across all sessions</p>
-            <div style="position:relative; height:220px;">
-              <canvas id="trajectory-chart"></canvas>
-            </div>
-          </div>
-
-          <!-- Dimension Bars + Insight Cards -->
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:24px;">
-
-            <!-- Dimension Bars -->
-            <div class="card card-static">
-              <h2 style="font-size:1rem; margin-bottom:20px;">📊 Dimension Breakdown</h2>
-              <div id="dim-bars"></div>
-            </div>
-
-            <!-- Insight Cards -->
-            <div style="display:grid; gap:16px;">
-              <div class="card card-static" style="background:rgba(16,185,129,0.06); border-color:rgba(16,185,129,0.2);">
-                <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--accent-emerald); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Your Strongest Area</div>
-                <div style="font-size:1.25rem; font-weight:700; color:var(--accent-emerald); margin-bottom:6px;" id="strongest-name"></div>
-                <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-emerald);" id="strongest-score"></div>
-              </div>
-              <div class="card card-static" style="background:rgba(245,158,11,0.06); border-color:rgba(245,158,11,0.2);">
-                <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--accent-orange); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Focus Here Next</div>
-                <div style="font-size:1.25rem; font-weight:700; color:var(--accent-orange); margin-bottom:6px;" id="weakest-name"></div>
-                <p style="font-size:0.875rem; color:var(--text-muted);" id="weakest-desc"></p>
-                <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-orange); margin-top:4px;" id="weakest-score"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Session History -->
-          <div class="card card-static">
-            <h2 style="font-size:1rem; margin-bottom:20px;">📅 Session History</h2>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Session</th>
-                  <th>Date</th>
-                  <th>Overall Avg</th>
-                  <th>Delta</th>
-                </tr>
-              </thead>
-              <tbody id="session-history"></tbody>
-            </table>
-          </div>
-
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm no-print" onclick="exportProfile()">📄 Export PDF</button>
+          <a id="coaching-link" href="#" class="btn btn-primary btn-sm no-print">Get Coaching →</a>
         </div>
       </div>
 
-      <!-- Not Found / No Sessions -->
-      <div id="empty-state" class="empty-state">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <circle cx="40" cy="40" r="30" stroke-opacity="0.3"/>
-          <path d="M40 28v14M40 50v4" stroke-opacity="0.6" stroke-linecap="round"/>
-        </svg>
-        <h3>No sessions found</h3>
-        <p id="empty-message">Run at least one defense session to see your personal progress profile.</p>
-        <a href="defense.html" class="btn btn-primary btn-sm">Start Defense Session →</a>
+      <div id="msg"></div>
+
+      <!-- No student -->
+      <div id="no-student" class="empty-state" style="display:none;">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="40" cy="32" r="14" stroke-opacity="0.5"/><path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/></svg>
+        <h3>No student selected</h3>
+        <a href="dashboard.html" class="btn btn-primary btn-sm">View Dashboard</a>
+      </div>
+
+      <!-- Skeleton -->
+      <div id="skeleton">
+        <div class="metric-grid" style="margin-bottom:var(--sp-3);">
+          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
+          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
+          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
+          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
+        </div>
+        <div class="skeleton" style="height:200px; border-radius:var(--radius-lg);"></div>
+      </div>
+
+      <!-- Profile content -->
+      <div id="profile-content" style="display:none;">
+
+        <!-- Key metrics -->
+        <div class="metric-grid" style="margin-bottom:var(--sp-4);">
+          <div class="metric-card">
+            <div class="metric-label">Sessions</div>
+            <div class="metric-value" id="stat-sessions">—</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Most Improved</div>
+            <div class="metric-value" id="stat-improved" style="font-size:1rem; line-height:1.3; padding-top:4px;">—</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Weakest Area</div>
+            <div class="metric-value" id="stat-weakest" style="font-size:1rem; line-height:1.3; padding-top:4px;">—</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Overall Delta</div>
+            <div class="metric-value" id="stat-delta">—</div>
+          </div>
+        </div>
+
+        <!-- Trajectory chart -->
+        <div class="card card-static" style="margin-bottom:var(--sp-4);">
+          <h2 style="font-size:1.125rem; margin-bottom:4px;">Score Trajectory</h2>
+          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Average score per session across all 4 dimensions.</p>
+          <div style="position:relative; height:200px;">
+            <canvas id="trajectory-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Dimension averages -->
+        <div class="card card-static" style="margin-bottom:var(--sp-4);">
+          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Dimension Breakdown</h2>
+          <div id="dim-bars"></div>
+        </div>
+
+        <!-- Improvement table -->
+        <div class="card card-static" style="margin-bottom:var(--sp-4);">
+          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Improvement vs. Baseline</h2>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Current Average</th>
+                <th>Change from First Session</th>
+              </tr>
+            </thead>
+            <tbody id="improvement-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Actions -->
+        <div class="card card-static" style="text-align:center; padding:var(--sp-4);">
+          <h3 style="margin-bottom:8px;">Keep improving</h3>
+          <p style="color:var(--text-muted); margin-bottom:var(--sp-3);">Each session builds your baseline. Run coaching drills between sessions for faster improvement.</p>
+          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+            <a id="action-defense" href="#" class="btn btn-primary">Run Defense Session →</a>
+            <a id="action-coaching" href="#" class="btn btn-secondary">Get Coaching</a>
+          </div>
+        </div>
+
       </div>
 
     </div>
   </main>
 
+  <style>
+    .score-bar-row { margin-bottom:16px; }
+    .score-bar-label { display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.875rem; }
+    .score-bar-track { height:10px; background:var(--bg-elevated); border-radius:5px; overflow:hidden; }
+    .score-bar-fill { height:100%; border-radius:5px; }
+  </style>
+
   <script>
-    const dimDescriptions = {
-      'Clarity': 'Explains concepts clearly without jargon or confusion.',
-      'Logical Reasoning': 'Structured thinking — connects ideas logically.',
-      'Technical Depth': 'Knows internals, not just surface-level facts.',
-      'Confidence': 'Composed delivery, handles pressure well.'
-    };
-
-    const dimColors = {
-      'Clarity': '#60A5FA',
-      'Logical Reasoning': '#F59E0B',
-      'Technical Depth': '#EF4444',
-      'Confidence': '#10B981'
-    };
-
-    let trajectoryChart = null;
-
-    // Get studentId from URL param ?id=
     const params = new URLSearchParams(window.location.search);
     const studentId = params.get('id');
+    const dimColors = { 'Clarity': '#60A5FA', 'Logical Reasoning': '#F59E0B', 'Technical Depth': '#EF4444', 'Confidence': '#10B981' };
 
-    async function loadProfile(id) {
-      const skeleton = document.getElementById('profile-skeleton');
-      const content = document.getElementById('profile-content');
-      const header = document.getElementById('profile-header');
-      const empty = document.getElementById('empty-state');
-
-      if (!id) {
-        // Show student selector
-        empty.style.display = 'flex';
-        document.getElementById('empty-message').textContent = 'Select a student from the dashboard to view their profile.';
+    // If no id in URL, try to show selector
+    async function init() {
+      if (!studentId) {
+        // Show student picker
+        try {
+          const res = await fetch('/api/students');
+          const students = await res.json();
+          if (!students.length) { document.getElementById('no-student').style.display = 'flex'; document.getElementById('skeleton').style.display = 'none'; return; }
+          // Redirect to first student with sessions, or just first
+          const withSessions = students.find(s => s.sessionCount > 0) || students[0];
+          window.location.href = `profile.html?id=${withSessions.id}`;
+        } catch { document.getElementById('no-student').style.display = 'flex'; document.getElementById('skeleton').style.display = 'none'; }
         return;
       }
 
-      skeleton.style.display = 'block';
-      empty.style.display = 'none';
-
       try {
-        const res = await fetch(`/api/profile/${id}`);
+        const res = await fetch(`/api/profile/${studentId}`);
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Profile not found');
+          const data = await res.json();
+          document.getElementById('skeleton').style.display = 'none';
+          if (res.status === 404 && data.error.includes('session')) {
+            document.getElementById('msg').innerHTML = `<div class="msg-error" style="margin-bottom:16px;">No sessions found. <a href="defense.html?id=${studentId}" style="color:var(--accent-indigo);">Run a defense session first →</a></div>`;
+          } else {
+            document.getElementById('no-student').style.display = 'flex';
+          }
+          return;
         }
-
         const data = await res.json();
-        skeleton.style.display = 'none';
-        content.style.display = 'none';
-        header.style.display = 'block';
-
         renderProfile(data);
-        content.style.display = 'block';
       } catch (e) {
-        skeleton.style.display = 'none';
-        empty.style.display = 'flex';
-        document.getElementById('empty-message').textContent = e.message;
+        document.getElementById('skeleton').style.display = 'none';
+        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load profile: ${e.message}</div>`;
       }
     }
 
     function renderProfile(data) {
-      document.getElementById('sessions-badge').textContent = `${data.totalSessions} Session${data.totalSessions > 1 ? 's' : ''} Completed`;
-      document.getElementById('profile-name').textContent = data.studentName;
-      document.getElementById('profile-project').textContent = data.projectTitle;
+      document.getElementById('skeleton').style.display = 'none';
+      document.getElementById('profile-content').style.display = 'block';
+
+      document.getElementById('page-title').textContent = data.studentName;
+      document.getElementById('page-subtitle').textContent = data.projectTitle;
+      document.getElementById('coaching-link').href = `coaching.html?id=${studentId}`;
+      document.getElementById('action-defense').href = `defense.html?id=${studentId}`;
+      document.getElementById('action-coaching').href = `coaching.html?id=${studentId}`;
+
+      document.getElementById('stat-sessions').textContent = data.totalSessions;
+      document.getElementById('stat-improved').textContent = data.mostImproved || '—';
+      document.getElementById('stat-weakest').textContent = data.weakest || '—';
+
+      // Overall delta
+      const deltas = Object.values(data.dimImprovements || {});
+      const overallDelta = deltas.length ? deltas.reduce((a, b) => a + b, 0) / deltas.length : 0;
+      const deltaEl = document.getElementById('stat-delta');
+      deltaEl.textContent = (overallDelta >= 0 ? '+' : '') + overallDelta.toFixed(2);
+      deltaEl.style.color = overallDelta > 0 ? 'var(--accent-emerald)' : overallDelta < 0 ? 'var(--accent-red)' : 'var(--text-primary)';
 
       // Trajectory chart
-      const ctx = document.getElementById('trajectory-chart').getContext('2d');
-      if (trajectoryChart) trajectoryChart.destroy();
-
-      trajectoryChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.trajectory.map(t => `Session ${t.session}`),
-          datasets: [{
-            label: 'Avg Score',
-            data: data.trajectory.map(t => t.avg),
-            borderColor: '#6366F1',
-            backgroundColor: 'rgba(99,102,241,0.08)',
-            borderWidth: 2.5,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: '#6366F1',
-            pointRadius: 5,
-            pointHoverRadius: 7
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-              ticks: { color: '#64748B', font: { family: 'JetBrains Mono', size: 11 } }
-            },
-            y: {
-              min: 0,
-              max: 5,
-              grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-              ticks: { stepSize: 1, color: '#64748B', font: { family: 'JetBrains Mono', size: 11 } }
-            }
+      if (data.trajectory && data.trajectory.length > 1) {
+        const ctx = document.getElementById('trajectory-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.trajectory.map(t => `Session ${t.session}`),
+            datasets: [{
+              label: 'Avg Score',
+              data: data.trajectory.map(t => t.avg),
+              borderColor: '#6366F1',
+              backgroundColor: 'rgba(99,102,241,0.1)',
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#6366F1',
+              pointRadius: 5
+            }]
           },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              backgroundColor: 'rgba(15,15,25,0.9)',
-              titleColor: '#F1F5F9',
-              bodyColor: '#94A3B8',
-              borderColor: 'rgba(99,102,241,0.3)',
-              borderWidth: 1,
-              padding: 12,
-              callbacks: {
-                label: ctx => `Avg: ${ctx.raw}/5`
-              }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15,15,25,0.9)', titleColor: '#F1F5F9', bodyColor: '#94A3B8' } },
+            scales: {
+              y: { min: 0, max: 5, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748B', stepSize: 1, font: { family: 'JetBrains Mono', size: 11 } } },
+              x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { family: 'Space Grotesk', size: 12 } } }
             }
           }
-        }
-      });
+        });
+      } else {
+        document.getElementById('trajectory-chart').parentElement.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem; text-align:center; padding:40px 0;">Need 2+ sessions to show trajectory.</p>';
+      }
 
       // Dimension bars
-      const dimBars = document.getElementById('dim-bars');
-      dimBars.innerHTML = '';
-      const dimEntries = Object.entries(data.dimensionAverages);
-      dimEntries.forEach(([dim, avg]) => {
-        const pct = (avg / 5) * 100;
-        const color = dimColors[dim] || '#6366F1';
-        const improvement = data.dimImprovements?.[dim] || 0;
-        const impSign = improvement >= 0 ? '+' : '';
-        const impColor = improvement >= 0 ? 'var(--accent-emerald)' : 'var(--accent-red)';
+      const barsEl = document.getElementById('dim-bars');
+      barsEl.innerHTML = Object.entries(data.dimensionAverages || {}).map(([dim, avg]) => `
+        <div class="score-bar-row">
+          <div class="score-bar-label">
+            <span>${dim}</span>
+            <span style="font-family:var(--font-mono); font-weight:700;">${avg}/5</span>
+          </div>
+          <div class="score-bar-track">
+            <div class="score-bar-fill" style="width:${(avg/5)*100}%; background:${dimColors[dim] || '#6366F1'};"></div>
+          </div>
+        </div>`).join('');
 
-        dimBars.innerHTML += `
-          <div style="margin-bottom:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-size:0.875rem; color:var(--text-secondary);">${dim}</span>
-              <span style="display:flex; gap:8px;">
-                <span style="font-family:var(--font-mono); font-size:0.8125rem; color:${impColor};">${impSign}${improvement}</span>
-                <span style="font-family:var(--font-mono); font-size:0.875rem; font-weight:600;">${avg}/5</span>
-              </span>
-            </div>
-            <div class="progress-bar-track" style="height:8px; border-radius:4px;">
-              <div style="height:100%; width:${pct}%; background:${color}; border-radius:4px; transition:width 0.6s ease;"></div>
-            </div>
-          </div>`;
-      });
-
-      // Strongest / Weakest
-      const sortedDims = dimEntries.slice().sort((a, b) => b[1] - a[1]);
-      const strongest = sortedDims[0];
-      const weakest = sortedDims[sortedDims.length - 1];
-
-      document.getElementById('strongest-name').textContent = strongest[0];
-      document.getElementById('strongest-score').textContent = `${strongest[1]}/5`;
-      document.getElementById('weakest-name').textContent = weakest[0];
-      document.getElementById('weakest-desc').textContent = dimDescriptions[weakest[0]];
-      document.getElementById('weakest-score').textContent = `${weakest[1]}/5`;
-
-      // Session history
-      const tbody = document.getElementById('session-history');
-      tbody.innerHTML = '';
-      data.trajectory.forEach((t, i) => {
-        const prev = i > 0 ? data.trajectory[i - 1].avg : null;
-        const delta = prev !== null ? (t.avg - prev).toFixed(2) : null;
-        const deltaClass = delta === null ? '' : parseFloat(delta) > 0 ? 'delta-positive' : parseFloat(delta) < 0 ? 'delta-negative' : 'delta-neutral';
-        const deltaText = delta === null ? '—' : parseFloat(delta) > 0 ? `▲ +${delta}` : parseFloat(delta) < 0 ? `▼ ${delta}` : '—';
-
-        // Get date from scores file
-        const date = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-
-        tbody.innerHTML += `
-          <tr>
-            <td><span class="badge badge-indigo">Session ${t.session}</span></td>
-            <td style="color:var(--text-muted); font-size:0.875rem;">${date}</td>
-            <td><span style="font-family:var(--font-mono); font-weight:600;">${t.avg}/5</span></td>
-            <td><span class="${deltaClass}" style="font-family:var(--font-mono);">${deltaText}</span></td>
-          </tr>`;
-      });
+      // Improvement table
+      const tbody = document.getElementById('improvement-tbody');
+      tbody.innerHTML = Object.entries(data.dimImprovements || {}).map(([dim, delta]) => {
+        const avg = data.dimensionAverages?.[dim] || 0;
+        const cls = delta > 0 ? 'delta-positive' : delta < 0 ? 'delta-negative' : 'delta-neutral';
+        return `<tr>
+          <td>${dim}</td>
+          <td><span style="font-family:var(--font-mono);">${avg}/5</span></td>
+          <td><span class="${cls}" style="font-family:var(--font-mono);">${delta >= 0 ? '+' : ''}${delta}</span></td>
+        </tr>`;
+      }).join('');
     }
 
-    loadProfile(studentId);
+    async function exportProfile() {
+      window.print();
+    }
+
+    init();
   </script>
 </body>
 </html>

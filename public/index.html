@@ -14,87 +14,114 @@
 
       <!-- Hero -->
       <section class="hero">
+        <p style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent-indigo); letter-spacing:0.1em; margin-bottom:12px;">AI-POWERED DEFENSE TRAINING</p>
         <h1>Train to defend<br>what you built.</h1>
-        <p>AI-powered project defense rehearsal for engineering students. Submit your project, face hard questions, get scored, get better.</p>
+        <p>Submit your project, face hard questions, get scored across 4 dimensions, and track your improvement over time.</p>
         <div class="hero-actions">
           <a href="onboarding.html" class="btn btn-primary btn-lg">Register Student →</a>
           <a href="dashboard.html" class="btn btn-secondary btn-lg">View Dashboard</a>
+          <button class="btn btn-outline btn-lg" id="demo-btn">⚡ Try Demo</button>
         </div>
+        <div id="demo-msg" style="display:none; margin-top:16px; font-size:0.875rem; color:var(--accent-emerald);">Setting up demo student...</div>
       </section>
+
+      <!-- AI Provider Status -->
+      <div id="ai-status" style="text-align:center; margin-bottom:32px;"></div>
 
       <!-- Features -->
-      <section>
-        <div class="feature-grid">
-          <div class="feature-card">
-            <div class="feature-icon">📋</div>
-            <h3>Submit Your Project</h3>
-            <p>Document your architecture decisions, tradeoffs, and known limitations. Build your baseline.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">🤖</div>
-            <h3>AI Interrogates You</h3>
-            <p>Get 10 targeted questions across 3 tiers — surface clarity, design tradeoffs, and failure modes.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">📊</div>
-            <h3>Human Evaluates</h3>
-            <p>Scored on clarity, reasoning, depth, and confidence. Track your delta across sessions.</p>
-          </div>
+      <div class="feature-grid" style="margin-bottom:var(--sp-8);">
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3>Submit Your Project</h3>
+          <p>Document architecture decisions, tradeoffs, and known limitations. Build your defense baseline.</p>
         </div>
-      </section>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>AI Interrogates You</h3>
+          <p>Get 10 targeted questions across 3 tiers — surface clarity, design tradeoffs, and failure modes.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Scored & Tracked</h3>
+          <p>Scored on clarity, reasoning, depth, and confidence. Track improvement across sessions.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Coaching</h3>
+          <p>Get targeted practice questions for your weakest dimensions. Drill until you're ready.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎙</div>
+          <h3>Live Panel Sessions</h3>
+          <p>Host real-time defense sessions with faculty panelists who score and interrupt live.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>Faculty Analytics</h3>
+          <p>Cohort-wide insights: spot at-risk students, top performers, and dimension weaknesses.</p>
+        </div>
+      </div>
 
-      <!-- Pipeline Overview -->
-      <section style="margin-top: 64px;">
-        <h2 style="text-align:center; margin-bottom:32px; font-size:1.5rem;">How it works</h2>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px;">
-
-          <div class="card card-static" style="text-align:center;">
+      <!-- How it works -->
+      <div class="card card-static" style="margin-bottom:var(--sp-6);">
+        <h2 style="text-align:center; margin-bottom:var(--sp-4);">How it works</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:24px; text-align:center;">
+          <div>
             <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">01</div>
-            <h4 style="margin-bottom:6px;">Onboarding</h4>
-            <p style="font-size:0.8125rem;">Register student & project details</p>
+            <h4 style="margin-bottom:4px;">Onboarding</h4>
+            <p style="font-size:0.875rem; color:var(--text-muted);">Register student & project details with architecture decisions</p>
           </div>
-
-          <div style="display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
-          </div>
-
-          <div class="card card-static" style="text-align:center;">
+          <div>
             <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">02</div>
-            <h4 style="margin-bottom:6px;">AI Questions</h4>
-            <p style="font-size:0.8125rem;">Generate 10 targeted questions via Ollama</p>
+            <h4 style="margin-bottom:4px;">AI Questions</h4>
+            <p style="font-size:0.875rem; color:var(--text-muted);">Generate 10 targeted questions via Claude AI</p>
           </div>
-
-          <div style="display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
-          </div>
-
-          <div class="card card-static" style="text-align:center;">
+          <div>
             <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">03</div>
-            <h4 style="margin-bottom:6px;">Defense Session</h4>
-            <p style="font-size:0.8125rem;">Score responses across 4 dimensions</p>
+            <h4 style="margin-bottom:4px;">Defense Session</h4>
+            <p style="font-size:0.875rem; color:var(--text-muted);">Answer questions, get AI-scored across 4 dimensions</p>
           </div>
-
-          <div style="display:flex; align-items:center; justify-content:center; color:var(--text-muted);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18l6-6-6-6"/></svg>
-          </div>
-
-          <div class="card card-static" style="text-align:center;">
+          <div>
             <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">04</div>
-            <h4 style="margin-bottom:6px;">Coaching</h4>
-            <p style="font-size:0.8125rem;">Targeted practice for weak areas</p>
+            <h4 style="margin-bottom:4px;">Coaching</h4>
+            <p style="font-size:0.875rem; color:var(--text-muted);">Targeted practice for your weakest areas</p>
           </div>
-
         </div>
-      </section>
+      </div>
 
       <!-- CTA -->
-      <section style="text-align:center; margin-top:64px; padding:48px 24px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:24px;">
-        <h2 style="margin-bottom:12px;">Ready to start?</h2>
-        <p style="margin-bottom:24px; color:var(--text-muted);">Register your first student and generate AI-powered defense questions in minutes.</p>
+      <div style="text-align:center; padding:var(--sp-4) 0;">
+        <h2 style="margin-bottom:var(--sp-2);">Ready to start?</h2>
+        <p style="margin-bottom:var(--sp-3);">Register your first student and generate AI-powered defense questions in minutes.</p>
         <a href="onboarding.html" class="btn btn-primary btn-lg">Get Started →</a>
-      </section>
+      </div>
 
     </div>
   </main>
+
+  <script>
+    // Check AI provider status
+    fetch('/api/health').then(r => r.json()).then(d => {
+      const el = document.getElementById('ai-status');
+      const provider = d.aiProvider === 'claude' ? '✓ Claude AI connected' : '⚠ Using Ollama (set ANTHROPIC_API_KEY for Claude)';
+      const color = d.aiProvider === 'claude' ? 'var(--accent-emerald)' : 'var(--accent-orange)';
+      el.innerHTML = `<span style="font-family:var(--font-mono); font-size:0.75rem; color:${color};">${provider}</span>`;
+    }).catch(() => {});
+
+    // Demo mode
+    document.getElementById('demo-btn').addEventListener('click', async () => {
+      const msg = document.getElementById('demo-msg');
+      msg.style.display = 'block';
+      try {
+        const res = await fetch('/api/demo/student');
+        const data = await res.json();
+        msg.textContent = 'Demo ready! Redirecting to questions...';
+        setTimeout(() => { window.location.href = `questions.html?id=demo_student`; }, 800);
+      } catch (e) {
+        msg.textContent = 'Error setting up demo: ' + e.message;
+        msg.style.color = 'var(--accent-red)';
+      }
+    });
+  </script>
 </body>
 </html>
