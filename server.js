@@ -560,7 +560,14 @@ app.get('/api/export/:studentId', async (req, res) => {
     res.json({ student, scores, questions, exportedAt: new Date().toISOString() });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-
+// ─── FACULTY PORTAL AUTH ──────────────────────────────────────────────────────
+app.post('/api/faculty-auth', (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'password required' });
+  if (password !== TEACHER_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
+  const token = `faculty-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  res.json({ token, role: 'faculty' });
+});
 // ─── PANEL SESSIONS ───────────────────────────────────────────────────────────
 app.post('/api/sessions/create', async (req, res) => {
   try {

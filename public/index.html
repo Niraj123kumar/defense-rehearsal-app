@@ -5,6 +5,205 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDRS — Project Defense Rehearsal System</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── Role Chooser ─────────────────────────────────────────── */
+    .role-section {
+      margin: var(--sp-6) 0 var(--sp-8);
+    }
+    .role-section h2 {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .role-card {
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      border-radius: 16px;
+      padding: 32px 28px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+      text-align: center;
+      background: var(--bg-card, rgba(255,255,255,0.03));
+      text-decoration: none;
+      display: block;
+    }
+    .role-card:hover {
+      transform: translateY(-2px);
+    }
+    .role-card--student {
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .role-card--student:hover {
+      border-color: rgba(16, 185, 129, 0.7);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .role-card--faculty {
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+    .role-card--faculty:hover {
+      border-color: rgba(99, 102, 241, 0.7);
+      background: rgba(99, 102, 241, 0.05);
+    }
+    .role-icon {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .role-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary, #fff);
+    }
+    .role-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .role-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 20px;
+      text-align: left;
+    }
+    .role-features li {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .role-features li::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .role-card--student .role-features li::before {
+      background: var(--accent-emerald, #10b981);
+    }
+    .role-card--faculty .role-features li::before {
+      background: var(--accent-indigo, #6366f1);
+    }
+    .role-cta {
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      width: 100%;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .role-card--student .role-cta {
+      background: var(--accent-emerald, #10b981);
+      color: #fff;
+    }
+    .role-card--faculty .role-cta {
+      background: var(--accent-indigo, #6366f1);
+      color: #fff;
+    }
+
+    /* ── Access denied banner ─────────────────────────────────── */
+    .access-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 10px;
+      padding: 12px 20px;
+      margin-bottom: 24px;
+      text-align: center;
+      font-size: 0.875rem;
+      color: #f87171;
+      display: none;
+    }
+
+    /* ── Returning user banner ────────────────────────────────── */
+    .returning-banner {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .returning-banner p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .returning-banner strong {
+      color: var(--text-primary, #fff);
+    }
+    .returning-banner-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    @media (max-width: 520px) {
+      .role-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Nav role badge & switch button ───────────────────────── */
+    .navbar-role {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+    .role-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .role-badge--student {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald, #10b981);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .role-badge--faculty {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--accent-indigo, #6366f1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+    .role-switch-btn {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+    .role-switch-btn:hover { color: var(--text-primary, #fff); }
+    .btn-choose-role {
+      font-size: 0.8rem;
+      color: var(--accent-indigo, #6366f1);
+      text-decoration: none;
+    }
+    .btn-choose-role:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
   <script src="nav.js" data-page="home"></script>
@@ -17,16 +216,68 @@
         <p style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent-indigo); letter-spacing:0.1em; margin-bottom:12px;">AI-POWERED DEFENSE TRAINING</p>
         <h1>Train to defend<br>what you built.</h1>
         <p>Submit your project, face hard questions, get scored across 4 dimensions, and track your improvement over time.</p>
-        <div class="hero-actions">
-          <a href="onboarding.html" class="btn btn-primary btn-lg">Register Student →</a>
-          <a href="dashboard.html" class="btn btn-secondary btn-lg">View Dashboard</a>
-          <button class="btn btn-outline btn-lg" id="demo-btn">⚡ Try Demo</button>
-        </div>
-        <div id="demo-msg" style="display:none; margin-top:16px; font-size:0.875rem; color:var(--accent-emerald);">Setting up demo student...</div>
       </section>
 
       <!-- AI Provider Status -->
-      <div id="ai-status" style="text-align:center; margin-bottom:32px;"></div>
+      <div id="ai-status" style="text-align:center; margin-bottom:24px;"></div>
+
+      <!-- Access denied banner (shown if redirected with ?access=faculty-required) -->
+      <div id="access-banner" class="access-banner">
+        That page is restricted to faculty. Please log in below.
+      </div>
+
+      <!-- Returning user banner -->
+      <div id="returning-banner" class="returning-banner" style="display:none;">
+        <p>Welcome back, <strong id="returning-role-label"></strong></p>
+        <div class="returning-banner-actions">
+          <a id="returning-continue-btn" href="#" class="btn btn-primary" style="font-size:0.85rem; padding:8px 18px;">Continue →</a>
+          <button onclick="window.__pdrsLogout()" class="btn btn-outline" style="font-size:0.85rem; padding:8px 18px;">Switch role</button>
+        </div>
+      </div>
+
+      <!-- Role Chooser -->
+      <div id="role-chooser" class="role-section">
+        <h2>Who are you?</h2>
+        <div class="role-grid">
+
+          <!-- Student Card -->
+          <a class="role-card role-card--student" href="onboarding.html" id="student-entry" onclick="window.__pdrsSetStudentRole(event)">
+            <span class="role-icon">🎓</span>
+            <div class="role-title">I'm a Student</div>
+            <p class="role-desc">Prepare for your project defense with AI-generated questions and scored practice sessions.</p>
+            <ul class="role-features">
+              <li>Submit your project & architecture</li>
+              <li>Get 10 AI-generated questions</li>
+              <li>Practice & get scored live</li>
+              <li>Track improvement over sessions</li>
+              <li>Coaching for weak dimensions</li>
+            </ul>
+            <span class="role-cta">Enter Student Portal →</span>
+          </a>
+
+          <!-- Faculty Card -->
+          <div class="role-card role-card--faculty" id="faculty-entry" onclick="window.__pdrsFacultyLogin()">
+            <span class="role-icon">🧑‍🏫</span>
+            <div class="role-title">I'm Faculty</div>
+            <p class="role-desc">Monitor your cohort, host live panel sessions, and track student performance over time.</p>
+            <ul class="role-features">
+              <li>Cohort-wide analytics dashboard</li>
+              <li>At-risk student alerts</li>
+              <li>Host live panel sessions</li>
+              <li>Score & annotate answers</li>
+              <li>Export session reports</li>
+            </ul>
+            <span class="role-cta">Enter Faculty Portal →</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Demo strip (shown below role chooser) -->
+      <div style="text-align:center; margin: 0 0 var(--sp-8);">
+        <button class="btn btn-outline" id="demo-btn">⚡ Try Demo (no login needed)</button>
+        <div id="demo-msg" style="display:none; margin-top:12px; font-size:0.875rem; color:var(--accent-emerald);">Setting up demo student...</div>
+      </div>
 
       <!-- Features -->
       <div class="feature-grid" style="margin-bottom:var(--sp-8);">
@@ -89,18 +340,11 @@
         </div>
       </div>
 
-      <!-- CTA -->
-      <div style="text-align:center; padding:var(--sp-4) 0;">
-        <h2 style="margin-bottom:var(--sp-2);">Ready to start?</h2>
-        <p style="margin-bottom:var(--sp-3);">Register your first student and generate AI-powered defense questions in minutes.</p>
-        <a href="onboarding.html" class="btn btn-primary btn-lg">Get Started →</a>
-      </div>
-
     </div>
   </main>
 
   <script>
-    // Check AI provider status
+    // ── AI provider status ──────────────────────────────────────────────────
     fetch('/api/health').then(r => r.json()).then(d => {
       const el = document.getElementById('ai-status');
       const provider = d.aiProvider === 'claude' ? '✓ Claude AI connected' : '⚠ Using Ollama (set ANTHROPIC_API_KEY for Claude)';
@@ -108,15 +352,56 @@
       el.innerHTML = `<span style="font-family:var(--font-mono); font-size:0.75rem; color:${color};">${provider}</span>`;
     }).catch(() => {});
 
-    // Demo mode
+    // ── Access denied banner ────────────────────────────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('access') === 'faculty-required') {
+      document.getElementById('access-banner').style.display = 'block';
+    }
+
+    // ── Returning user detection ────────────────────────────────────────────
+    (function checkReturning() {
+      const role = localStorage.getItem('pdrs_role');
+      const facultyToken = localStorage.getItem('pdrs_faculty_token');
+      const studentId = localStorage.getItem('pdrs_student_id');
+      const banner = document.getElementById('returning-banner');
+      const chooser = document.getElementById('role-chooser');
+      const label = document.getElementById('returning-role-label');
+      const continueBtn = document.getElementById('returning-continue-btn');
+
+      if (role === 'faculty' && facultyToken) {
+        banner.style.display = 'flex';
+        chooser.style.display = 'none';
+        label.textContent = 'Faculty';
+        continueBtn.href = 'analytics.html';
+        continueBtn.textContent = 'Go to Dashboard →';
+      } else if (role === 'student') {
+        banner.style.display = 'flex';
+        chooser.style.display = 'none';
+        label.textContent = 'Student';
+        continueBtn.href = studentId ? `questions.html?id=${studentId}` : 'onboarding.html';
+        continueBtn.textContent = studentId ? 'Continue Session →' : 'Go to Onboarding →';
+      }
+    })();
+
+    // ── Set student role on click ───────────────────────────────────────────
+    window.__pdrsSetStudentRole = function(e) {
+      localStorage.setItem('pdrs_role', 'student');
+      // Let the <a href> navigation proceed normally
+    };
+
+    // ── Demo mode ───────────────────────────────────────────────────────────
     document.getElementById('demo-btn').addEventListener('click', async () => {
       const msg = document.getElementById('demo-msg');
       msg.style.display = 'block';
+      msg.style.color = 'var(--accent-emerald)';
+      msg.textContent = 'Setting up demo student...';
+      // Set student role for demo
+      localStorage.setItem('pdrs_role', 'student');
       try {
         const res = await fetch('/api/demo/student');
         const data = await res.json();
         msg.textContent = 'Demo ready! Redirecting to questions...';
-        setTimeout(() => { window.location.href = `questions.html?id=demo_student`; }, 800);
+        setTimeout(() => { window.location.href = 'questions.html?id=demo_student'; }, 800);
       } catch (e) {
         msg.textContent = 'Error setting up demo: ' + e.message;
         msg.style.color = 'var(--accent-red)';
