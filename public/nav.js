@@ -209,7 +209,7 @@
         const data = await res.json();
         localStorage.setItem(ROLE_KEY, 'faculty');
         localStorage.setItem(FACULTY_TOKEN_KEY, data.token);
-        window.location.href = 'analytics.html';
+        window.location.href = 'faculty-dashboard.html';
       } else {
         errEl.style.display = 'block';
         errEl.textContent = 'Incorrect password. Try again.';

@@ -6,203 +6,268 @@
   <title>PDRS — Project Defense Rehearsal System</title>
   <link rel="stylesheet" href="styles.css">
   <style>
-    /* ── Role Chooser ─────────────────────────────────────────── */
-    .role-section {
-      margin: var(--sp-6) 0 var(--sp-8);
+    /* ── Sticky navbar override for this page ─── */
+    .navbar { border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+    /* ── Hero ─────────────────────────────────── */
+    .hero-v2 {
+      padding: 96px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-v2::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,102,241,0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 20% 80%, rgba(16,185,129,0.07) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: var(--radius-pill);
+      padding: 6px 16px;
+      font-size: 0.78rem; font-family: var(--font-mono);
+      color: var(--accent-indigo); letter-spacing: 0.06em;
+      margin-bottom: 28px;
+    }
+    .hero-pill-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent-indigo);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100%{ opacity:1; transform:scale(1); }
+      50%{ opacity:0.5; transform:scale(1.4); }
+    }
+
+    .hero-v2 h1 {
+      font-size: clamp(2.6rem, 6vw, 4rem);
+      line-height: 1.08;
+      font-weight: 700;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #F1F5F9 0%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-v2 h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent-indigo) 0%, #818CF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-v2 > p {
+      font-size: 1.1rem; color: var(--text-muted);
+      max-width: 480px; margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+
+    .hero-ctas {
+      display: flex; gap: 12px; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 52px;
+    }
+
+    /* ── Stats strip ─────────────────────────── */
+    .stats-strip {
+      display: flex; justify-content: center; gap: 40px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 40px;
+    }
+    .stat-item { text-align: center; }
+    .stat-number {
+      font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700;
+      color: var(--text-primary); display: block;
+    }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* ── Role cards ──────────────────────────── */
+    .role-section { padding: var(--sp-8) 0; }
+    .role-section-label {
+      text-align: center; font-size: 0.75rem; font-family: var(--font-mono);
+      color: var(--accent-indigo); letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 12px;
     }
     .role-section h2 {
-      text-align: center;
-      margin-bottom: 8px;
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      font-weight: 400;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
+      text-align: center; font-size: 1.75rem; margin-bottom: var(--sp-4);
     }
-    .role-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      max-width: 680px;
-      margin: 0 auto;
+    .role-grid-v2 {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 24px; max-width: 740px; margin: 0 auto;
     }
-    .role-card {
-      border: 1px solid var(--border, rgba(255,255,255,0.1));
-      border-radius: 16px;
+    .role-card-v2 {
+      border-radius: var(--radius-xl);
       padding: 32px 28px;
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.15s;
-      text-align: center;
-      background: var(--bg-card, rgba(255,255,255,0.03));
-      text-decoration: none;
-      display: block;
+      text-decoration: none; display: block;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
     }
-    .role-card:hover {
-      transform: translateY(-2px);
-    }
-    .role-card--student {
-      border-color: rgba(16, 185, 129, 0.3);
-    }
-    .role-card--student:hover {
-      border-color: rgba(16, 185, 129, 0.7);
-      background: rgba(16, 185, 129, 0.05);
-    }
-    .role-card--faculty {
-      border-color: rgba(99, 102, 241, 0.3);
-    }
-    .role-card--faculty:hover {
-      border-color: rgba(99, 102, 241, 0.7);
-      background: rgba(99, 102, 241, 0.05);
-    }
-    .role-icon {
-      font-size: 2.5rem;
-      margin-bottom: 16px;
-      display: block;
-    }
-    .role-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--text-primary, #fff);
-    }
-    .role-desc {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 20px;
-    }
-    .role-features {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 20px;
-      text-align: left;
-    }
-    .role-features li {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      padding: 4px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .role-features li::before {
+    .role-card-v2::before {
       content: '';
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      flex-shrink: 0;
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      opacity: 0; transition: opacity 0.2s;
     }
-    .role-card--student .role-features li::before {
-      background: var(--accent-emerald, #10b981);
-    }
-    .role-card--faculty .role-features li::before {
-      background: var(--accent-indigo, #6366f1);
-    }
-    .role-cta {
-      display: inline-block;
-      padding: 10px 24px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      width: 100%;
-      text-align: center;
-      box-sizing: border-box;
-    }
-    .role-card--student .role-cta {
-      background: var(--accent-emerald, #10b981);
-      color: #fff;
-    }
-    .role-card--faculty .role-cta {
-      background: var(--accent-indigo, #6366f1);
-      color: #fff;
-    }
+    .role-card-v2:hover { transform: translateY(-4px); }
+    .role-card-v2:hover::before { opacity: 1; }
 
-    /* ── Access denied banner ─────────────────────────────────── */
+    .role-card-v2--student {
+      background: rgba(16,185,129,0.06);
+      border: 1px solid rgba(16,185,129,0.2);
+    }
+    .role-card-v2--student::before {
+      background: rgba(16,185,129,0.04);
+      box-shadow: 0 8px 32px rgba(16,185,129,0.12);
+    }
+    .role-card-v2--student:hover { border-color: rgba(16,185,129,0.45); }
+
+    .role-card-v2--faculty {
+      background: rgba(99,102,241,0.06);
+      border: 1px solid rgba(99,102,241,0.2);
+    }
+    .role-card-v2--faculty::before {
+      background: rgba(99,102,241,0.04);
+      box-shadow: 0 8px 32px rgba(99,102,241,0.15);
+    }
+    .role-card-v2--faculty:hover { border-color: rgba(99,102,241,0.5); }
+
+    .rc-icon {
+      width: 48px; height: 48px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; margin-bottom: 18px;
+    }
+    .role-card-v2--student .rc-icon { background: rgba(16,185,129,0.15); }
+    .role-card-v2--faculty .rc-icon { background: rgba(99,102,241,0.15); }
+
+    .rc-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; color: var(--text-primary); }
+    .rc-desc  { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
+
+    .rc-features { list-style: none; margin-bottom: 24px; }
+    .rc-features li {
+      font-size: 0.825rem; color: var(--text-secondary);
+      padding: 4px 0; display: flex; align-items: center; gap: 8px;
+    }
+    .rc-features li::before {
+      content: '';
+      width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0;
+    }
+    .role-card-v2--student .rc-features li::before { background: var(--accent-emerald); }
+    .role-card-v2--faculty .rc-features li::before { background: var(--accent-indigo); }
+
+    .rc-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.875rem; font-weight: 600;
+      padding: 10px 20px; border-radius: var(--radius-pill);
+      transition: all 0.15s; width: 100%; justify-content: center; box-sizing: border-box;
+    }
+    .role-card-v2--student .rc-cta { background: var(--accent-emerald); color: #fff; }
+    .role-card-v2--student .rc-cta:hover { background: #0da271; }
+    .role-card-v2--faculty .rc-cta { background: var(--accent-indigo); color: #fff; }
+    .role-card-v2--faculty .rc-cta:hover { background: #5558e3; }
+
+    /* ── How it works ────────────────────────── */
+    .how-section { padding: var(--sp-8) 0; }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 24px; position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute; top: 28px; left: 10%; right: 10%;
+      height: 1px; background: var(--border-subtle);
+    }
+    .step-box { text-align: center; position: relative; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--bg-elevated); border: 1px solid var(--border-card);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 1rem; font-weight: 700;
+      color: var(--accent-indigo); margin: 0 auto 16px;
+      position: relative; z-index: 1;
+    }
+    .step-box h4 { font-size: 0.9375rem; margin-bottom: 6px; }
+    .step-box p  { font-size: 0.825rem; color: var(--text-muted); }
+
+    /* ── Feature grid v2 ─────────────────────── */
+    .features-section { padding: var(--sp-6) 0 var(--sp-8); }
+    .features-section-label {
+      text-align: center; font-size: 0.75rem; font-family: var(--font-mono);
+      color: var(--accent-emerald); letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .features-section h2 { text-align: center; margin-bottom: var(--sp-4); }
+    .feature-grid-v2 {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 20px;
+    }
+    .feature-card-v2 {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--sp-3);
+      transition: all 0.2s;
+      border-top: 3px solid transparent;
+    }
+    .feature-card-v2:hover {
+      border-color: var(--border-card);
+      border-top-color: var(--accent-indigo);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-card);
+    }
+    .fc2-icon {
+      width: 44px; height: 44px; border-radius: var(--radius-sm);
+      background: var(--accent-indigo-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; margin-bottom: 14px;
+    }
+    .feature-card-v2 h3 { font-size: 1rem; margin-bottom: 6px; }
+    .feature-card-v2 p  { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* ── Demo bar ────────────────────────────── */
+    .demo-bar {
+      text-align: center; padding: var(--sp-6) 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .demo-bar p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px; }
+
+    /* ── Access denied & returning banners ───── */
     .access-banner {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: 10px;
-      padding: 12px 20px;
-      margin-bottom: 24px;
-      text-align: center;
-      font-size: 0.875rem;
-      color: #f87171;
-      display: none;
+      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+      border-radius: var(--radius-md); padding: 12px 20px;
+      text-align: center; font-size: 0.875rem; color: #f87171;
+      display: none; margin-bottom: 20px;
     }
-
-    /* ── Returning user banner ────────────────────────────────── */
     .returning-banner {
-      background: rgba(16, 185, 129, 0.08);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      border-radius: 10px;
-      padding: 14px 20px;
-      margin-bottom: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
+      background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.2);
+      border-radius: var(--radius-lg); padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap; margin-bottom: 32px;
     }
-    .returning-banner p {
-      margin: 0;
-      font-size: 0.875rem;
-      color: var(--text-muted);
-    }
-    .returning-banner strong {
-      color: var(--text-primary, #fff);
-    }
-    .returning-banner-actions {
-      display: flex;
-      gap: 8px;
-    }
+    .returning-banner p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
 
-    @media (max-width: 520px) {
-      .role-grid { grid-template-columns: 1fr; }
+    /* ── Footer ──────────────────────────────── */
+    .footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: var(--sp-4) 0;
+      text-align: center;
     }
+    .footer p { font-size: 0.8rem; color: var(--text-muted); }
 
-    /* ── Nav role badge & switch button ───────────────────────── */
-    .navbar-role {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-left: auto;
+    @media (max-width: 640px) {
+      .role-grid-v2 { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr 1fr; }
+      .steps-grid::before { display: none; }
+      .feature-grid-v2 { grid-template-columns: 1fr; }
+      .stats-strip { gap: 24px; }
     }
-    .role-badge {
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 20px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+    @media (max-width: 420px) {
+      .steps-grid { grid-template-columns: 1fr; }
     }
-    .role-badge--student {
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--accent-emerald, #10b981);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-    .role-badge--faculty {
-      background: rgba(99, 102, 241, 0.15);
-      color: var(--accent-indigo, #6366f1);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-    }
-    .role-switch-btn {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      text-decoration: underline;
-    }
-    .role-switch-btn:hover { color: var(--text-primary, #fff); }
-    .btn-choose-role {
-      font-size: 0.8rem;
-      color: var(--accent-indigo, #6366f1);
-      text-decoration: none;
-    }
-    .btn-choose-role:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -211,201 +276,242 @@
   <main class="main-content">
     <div class="page-wrapper">
 
-      <!-- Hero -->
-      <section class="hero">
-        <p style="font-family:var(--font-mono); font-size:0.8rem; color:var(--accent-indigo); letter-spacing:0.1em; margin-bottom:12px;">AI-POWERED DEFENSE TRAINING</p>
-        <h1>Train to defend<br>what you built.</h1>
-        <p>Submit your project, face hard questions, get scored across 4 dimensions, and track your improvement over time.</p>
-      </section>
-
-      <!-- AI Provider Status -->
-      <div id="ai-status" style="text-align:center; margin-bottom:24px;"></div>
-
-      <!-- Access denied banner (shown if redirected with ?access=faculty-required) -->
+      <!-- Access denied banner -->
       <div id="access-banner" class="access-banner">
-        That page is restricted to faculty. Please log in below.
+        That page is restricted to faculty. Please sign in below.
       </div>
 
       <!-- Returning user banner -->
       <div id="returning-banner" class="returning-banner" style="display:none;">
-        <p>Welcome back, <strong id="returning-role-label"></strong></p>
-        <div class="returning-banner-actions">
-          <a id="returning-continue-btn" href="#" class="btn btn-primary" style="font-size:0.85rem; padding:8px 18px;">Continue →</a>
-          <button onclick="window.__pdrsLogout()" class="btn btn-outline" style="font-size:0.85rem; padding:8px 18px;">Switch role</button>
+        <p>Welcome back, <strong id="returning-label" style="color:var(--text-primary);"></strong></p>
+        <div style="display:flex; gap:8px;">
+          <a id="returning-continue" href="#" class="btn btn-primary btn-sm">Continue →</a>
+          <button onclick="window.__pdrsLogout()" class="btn btn-secondary btn-sm">Switch role</button>
         </div>
       </div>
 
-      <!-- Role Chooser -->
-      <div id="role-chooser" class="role-section">
-        <h2>Who are you?</h2>
-        <div class="role-grid">
+      <!-- ── HERO ── -->
+      <section class="hero-v2">
+        <div class="hero-pill">
+          <span class="hero-pill-dot"></span>
+          AI-POWERED · FOR ENGINEERING STUDENTS
+        </div>
 
-          <!-- Student Card -->
-          <a class="role-card role-card--student" href="onboarding.html" id="student-entry" onclick="window.__pdrsSetStudentRole(event)">
-            <span class="role-icon">🎓</span>
-            <div class="role-title">I'm a Student</div>
-            <p class="role-desc">Prepare for your project defense with AI-generated questions and scored practice sessions.</p>
-            <ul class="role-features">
-              <li>Submit your project & architecture</li>
-              <li>Get 10 AI-generated questions</li>
-              <li>Practice & get scored live</li>
-              <li>Track improvement over sessions</li>
-              <li>Coaching for weak dimensions</li>
+        <h1>Train to defend<br><em>what you built.</em></h1>
+        <p>Submit your project, face hard questions, get scored across 4 dimensions, and track your improvement over time.</p>
+
+        <!-- AI status -->
+        <div id="ai-status" style="margin-bottom:28px;"></div>
+
+        <div class="hero-ctas">
+          <a href="onboarding.html" class="btn btn-primary btn-lg" onclick="localStorage.setItem('pdrs_role','student')">
+            Get Started — Register Project →
+          </a>
+          <button class="btn btn-outline" id="demo-btn">⚡ Try Demo (no login)</button>
+        </div>
+        <div id="demo-msg" style="display:none; font-size:0.875rem; color:var(--accent-emerald); margin-bottom:16px;"></div>
+
+        <!-- Stats -->
+        <div class="stats-strip">
+          <div class="stat-item">
+            <span class="stat-number">10</span>
+            <div class="stat-label">AI-Generated Questions</div>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">4</span>
+            <div class="stat-label">Scoring Dimensions</div>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">3</span>
+            <div class="stat-label">Question Tiers</div>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">∞</span>
+            <div class="stat-label">Practice Sessions</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ROLE CHOOSER ── -->
+      <section class="role-section" id="role-chooser">
+        <p class="role-section-label">Who are you?</p>
+        <h2>Choose your portal</h2>
+
+        <div class="role-grid-v2">
+
+          <!-- Student -->
+          <a class="role-card-v2 role-card-v2--student" href="onboarding.html"
+             onclick="localStorage.setItem('pdrs_role','student')">
+            <div class="rc-icon">🎓</div>
+            <div class="rc-title">I'm a Student</div>
+            <p class="rc-desc">Prepare for your defense with AI-powered practice sessions and performance tracking.</p>
+            <ul class="rc-features">
+              <li>Submit project &amp; architecture decisions</li>
+              <li>Get 10 AI-generated targeted questions</li>
+              <li>Scored across 4 dimensions live</li>
+              <li>Track improvement across sessions</li>
+              <li>Personalized coaching for weak areas</li>
             </ul>
-            <span class="role-cta">Enter Student Portal →</span>
+            <span class="rc-cta">Enter Student Portal →</span>
           </a>
 
-          <!-- Faculty Card -->
-          <div class="role-card role-card--faculty" id="faculty-entry" onclick="window.__pdrsFacultyLogin()">
-            <span class="role-icon">🧑‍🏫</span>
-            <div class="role-title">I'm Faculty</div>
-            <p class="role-desc">Monitor your cohort, host live panel sessions, and track student performance over time.</p>
-            <ul class="role-features">
+          <!-- Faculty -->
+          <div class="role-card-v2 role-card-v2--faculty" style="cursor:pointer;"
+               onclick="window.location.href='faculty-login.html'">
+            <div class="rc-icon">🧑‍🏫</div>
+            <div class="rc-title">I'm Faculty</div>
+            <p class="rc-desc">Monitor cohort performance, host live panel sessions, and manage student evaluations.</p>
+            <ul class="rc-features">
               <li>Cohort-wide analytics dashboard</li>
               <li>At-risk student alerts</li>
-              <li>Host live panel sessions</li>
-              <li>Score & annotate answers</li>
+              <li>Host live panel defense sessions</li>
+              <li>Score &amp; annotate student answers</li>
               <li>Export session reports</li>
             </ul>
-            <span class="role-cta">Enter Faculty Portal →</span>
+            <span class="rc-cta">Enter Faculty Portal →</span>
           </div>
 
         </div>
-      </div>
+      </section>
 
-      <!-- Demo strip (shown below role chooser) -->
-      <div style="text-align:center; margin: 0 0 var(--sp-8);">
-        <button class="btn btn-outline" id="demo-btn">⚡ Try Demo (no login needed)</button>
-        <div id="demo-msg" style="display:none; margin-top:12px; font-size:0.875rem; color:var(--accent-emerald);">Setting up demo student...</div>
-      </div>
+      <!-- ── HOW IT WORKS ── -->
+      <section class="how-section">
+        <p class="role-section-label" style="color:var(--accent-orange);">How it works</p>
+        <h2 style="text-align:center; margin-bottom:var(--sp-5);">From zero to defense-ready in 4 steps</h2>
 
-      <!-- Features -->
-      <div class="feature-grid" style="margin-bottom:var(--sp-8);">
-        <div class="feature-card">
-          <div class="feature-icon">📋</div>
-          <h3>Submit Your Project</h3>
-          <p>Document architecture decisions, tradeoffs, and known limitations. Build your defense baseline.</p>
+        <div class="steps-grid">
+          <div class="step-box">
+            <div class="step-num">01</div>
+            <h4>Onboard</h4>
+            <p>Register your student &amp; document architecture decisions</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">02</div>
+            <h4>Generate</h4>
+            <p>Claude AI creates 10 questions targeted to your project</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">03</div>
+            <h4>Defend</h4>
+            <p>Answer questions, get scored on 4 dimensions instantly</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">04</div>
+            <h4>Improve</h4>
+            <p>Targeted coaching drills your weakest dimensions</p>
+          </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">🤖</div>
-          <h3>AI Interrogates You</h3>
-          <p>Get 10 targeted questions across 3 tiers — surface clarity, design tradeoffs, and failure modes.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <h3>Scored & Tracked</h3>
-          <p>Scored on clarity, reasoning, depth, and confidence. Track improvement across sessions.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🎯</div>
-          <h3>Coaching</h3>
-          <p>Get targeted practice questions for your weakest dimensions. Drill until you're ready.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🎙</div>
-          <h3>Live Panel Sessions</h3>
-          <p>Host real-time defense sessions with faculty panelists who score and interrupt live.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📈</div>
-          <h3>Faculty Analytics</h3>
-          <p>Cohort-wide insights: spot at-risk students, top performers, and dimension weaknesses.</p>
-        </div>
-      </div>
+      </section>
 
-      <!-- How it works -->
-      <div class="card card-static" style="margin-bottom:var(--sp-6);">
-        <h2 style="text-align:center; margin-bottom:var(--sp-4);">How it works</h2>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:24px; text-align:center;">
-          <div>
-            <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">01</div>
-            <h4 style="margin-bottom:4px;">Onboarding</h4>
-            <p style="font-size:0.875rem; color:var(--text-muted);">Register student & project details with architecture decisions</p>
+      <!-- ── FEATURES ── -->
+      <section class="features-section">
+        <p class="features-section-label">Features</p>
+        <h2>Everything you need to ace your defense</h2>
+
+        <div class="feature-grid-v2">
+          <div class="feature-card-v2">
+            <div class="fc2-icon">📋</div>
+            <h3>Project Submission</h3>
+            <p>Document architecture decisions, tradeoffs, and known limitations to build your defense baseline.</p>
           </div>
-          <div>
-            <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">02</div>
-            <h4 style="margin-bottom:4px;">AI Questions</h4>
-            <p style="font-size:0.875rem; color:var(--text-muted);">Generate 10 targeted questions via Claude AI</p>
+          <div class="feature-card-v2">
+            <div class="fc2-icon">🤖</div>
+            <h3>AI Interrogation</h3>
+            <p>Claude generates 10 questions across 3 tiers — surface clarity, design tradeoffs, and failure modes.</p>
           </div>
-          <div>
-            <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">03</div>
-            <h4 style="margin-bottom:4px;">Defense Session</h4>
-            <p style="font-size:0.875rem; color:var(--text-muted);">Answer questions, get AI-scored across 4 dimensions</p>
+          <div class="feature-card-v2">
+            <div class="fc2-icon">📊</div>
+            <h3>4-Dimension Scoring</h3>
+            <p>Every answer is scored on clarity, reasoning, depth, and confidence in real time.</p>
           </div>
-          <div>
-            <div style="font-family:var(--font-mono); font-size:2rem; font-weight:700; color:var(--accent-indigo); margin-bottom:8px;">04</div>
-            <h4 style="margin-bottom:4px;">Coaching</h4>
-            <p style="font-size:0.875rem; color:var(--text-muted);">Targeted practice for your weakest areas</p>
+          <div class="feature-card-v2">
+            <div class="fc2-icon">📈</div>
+            <h3>Progress Tracking</h3>
+            <p>Track your delta across sessions. See exactly which dimensions are improving and which need work.</p>
+          </div>
+          <div class="feature-card-v2">
+            <div class="fc2-icon">🎯</div>
+            <h3>Coaching Mode</h3>
+            <p>Targeted practice questions generated specifically for your weakest dimensions.</p>
+          </div>
+          <div class="feature-card-v2">
+            <div class="fc2-icon">🎙</div>
+            <h3>Live Panel Sessions</h3>
+            <p>Host real-time defense sessions with faculty who score and interrupt live via WebRTC.</p>
           </div>
         </div>
+      </section>
+
+      <!-- ── DEMO BAR ── -->
+      <div class="demo-bar">
+        <p>Not sure where to start? Try the demo — no login required.</p>
+        <button class="btn btn-outline btn-lg" id="demo-btn-2">⚡ Launch Demo Project</button>
       </div>
 
     </div>
   </main>
 
-  <script>
-    // ── AI provider status ──────────────────────────────────────────────────
-    fetch('/api/health').then(r => r.json()).then(d => {
-      const el = document.getElementById('ai-status');
-      const provider = d.aiProvider === 'claude' ? '✓ Claude AI connected' : '⚠ Using Ollama (set ANTHROPIC_API_KEY for Claude)';
-      const color = d.aiProvider === 'claude' ? 'var(--accent-emerald)' : 'var(--accent-orange)';
-      el.innerHTML = `<span style="font-family:var(--font-mono); font-size:0.75rem; color:${color};">${provider}</span>`;
-    }).catch(() => {});
+  <footer class="footer">
+    <div class="page-wrapper">
+      <p>PDRS — Project Defense Rehearsal System · Built with Claude AI</p>
+    </div>
+  </footer>
 
-    // ── Access denied banner ────────────────────────────────────────────────
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('access') === 'faculty-required') {
+  <script>
+    // AI status
+    fetch('/api/health').then(r=>r.json()).then(d=>{
+      const el = document.getElementById('ai-status');
+      const ok = d.aiProvider === 'claude';
+      el.innerHTML = `<span style="font-family:var(--font-mono);font-size:0.75rem;color:${ok?'var(--accent-emerald)':'var(--accent-orange)'};">${ok?'✓ Claude AI connected':'⚠ Ollama mode — set ANTHROPIC_API_KEY for Claude'}</span>`;
+    }).catch(()=>{});
+
+    // Access denied banner
+    if (new URLSearchParams(location.search).get('access') === 'faculty-required') {
       document.getElementById('access-banner').style.display = 'block';
     }
 
-    // ── Returning user detection ────────────────────────────────────────────
-    (function checkReturning() {
-      const role = localStorage.getItem('pdrs_role');
-      const facultyToken = localStorage.getItem('pdrs_faculty_token');
-      const studentId = localStorage.getItem('pdrs_student_id');
-      const banner = document.getElementById('returning-banner');
-      const chooser = document.getElementById('role-chooser');
-      const label = document.getElementById('returning-role-label');
-      const continueBtn = document.getElementById('returning-continue-btn');
+    // Returning user banner
+    (function(){
+      const role  = localStorage.getItem('pdrs_role');
+      const fTok  = localStorage.getItem('pdrs_faculty_token');
+      const sId   = localStorage.getItem('pdrs_student_id');
+      const banner   = document.getElementById('returning-banner');
+      const chooser  = document.getElementById('role-chooser');
+      const label    = document.getElementById('returning-label');
+      const cont     = document.getElementById('returning-continue');
 
-      if (role === 'faculty' && facultyToken) {
-        banner.style.display = 'flex';
-        chooser.style.display = 'none';
+      if (role === 'faculty' && fTok) {
+        banner.style.display = 'flex'; chooser.style.display = 'none';
         label.textContent = 'Faculty';
-        continueBtn.href = 'analytics.html';
-        continueBtn.textContent = 'Go to Dashboard →';
+        cont.href = 'faculty-dashboard.html'; cont.textContent = 'Go to Dashboard →';
       } else if (role === 'student') {
-        banner.style.display = 'flex';
-        chooser.style.display = 'none';
+        banner.style.display = 'flex'; chooser.style.display = 'none';
         label.textContent = 'Student';
-        continueBtn.href = studentId ? `questions.html?id=${studentId}` : 'onboarding.html';
-        continueBtn.textContent = studentId ? 'Continue Session →' : 'Go to Onboarding →';
+        cont.href = sId ? `questions.html?id=${sId}` : 'onboarding.html';
+        cont.textContent = sId ? 'Continue Session →' : 'Go to Onboarding →';
       }
     })();
 
-    // ── Set student role on click ───────────────────────────────────────────
-    window.__pdrsSetStudentRole = function(e) {
-      localStorage.setItem('pdrs_role', 'student');
-      // Let the <a href> navigation proceed normally
-    };
-
-    // ── Demo mode ───────────────────────────────────────────────────────────
-    document.getElementById('demo-btn').addEventListener('click', async () => {
-      const msg = document.getElementById('demo-msg');
-      msg.style.display = 'block';
-      msg.style.color = 'var(--accent-emerald)';
-      msg.textContent = 'Setting up demo student...';
-      // Set student role for demo
-      localStorage.setItem('pdrs_role', 'student');
+    // Demo handler (both buttons)
+    async function runDemo(msgEl) {
+      msgEl.style.display = 'block';
+      msgEl.style.color = 'var(--accent-emerald)';
+      msgEl.textContent = 'Setting up demo student…';
+      localStorage.setItem('pdrs_role','student');
       try {
-        const res = await fetch('/api/demo/student');
-        const data = await res.json();
-        msg.textContent = 'Demo ready! Redirecting to questions...';
-        setTimeout(() => { window.location.href = 'questions.html?id=demo_student'; }, 800);
-      } catch (e) {
-        msg.textContent = 'Error setting up demo: ' + e.message;
-        msg.style.color = 'var(--accent-red)';
+        await fetch('/api/demo/student');
+        msgEl.textContent = 'Demo ready! Redirecting…';
+        setTimeout(()=>{ window.location.href='questions.html?id=demo_student'; }, 700);
+      } catch(e) {
+        msgEl.textContent = 'Error: ' + e.message;
+        msgEl.style.color = 'var(--accent-red)';
       }
+    }
+
+    document.getElementById('demo-btn').addEventListener('click', ()=> runDemo(document.getElementById('demo-msg')));
+    document.getElementById('demo-btn-2').addEventListener('click', ()=>{
+      document.getElementById('demo-btn').click();
+      window.scrollTo({top:0, behavior:'smooth'});
     });
   </script>
 </body>

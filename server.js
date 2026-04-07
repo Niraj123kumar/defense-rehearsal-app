@@ -561,7 +561,7 @@ app.get('/api/export/:studentId', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ─── FACULTY PORTAL AUTH ──────────────────────────────────────────────────────
-app.post('/api/faculty-auth', (req, res) => {
+app.post('/api/faculty/login', (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: 'password required' });
   if (password !== TEACHER_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
