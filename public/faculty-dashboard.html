@@ -3,738 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Faculty Dashboard — PDRS</title>
+  <title>Faculty Dashboard - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ── Tabs ──────────────────────────────────────────────────── */
-    .tabs-bar {
-      display: flex; gap: 4px;
-      border-bottom: 1px solid var(--border-subtle);
-      margin-bottom: var(--sp-4);
-      overflow-x: auto; padding-bottom: 0;
-    }
-    .tab-btn {
-      background: none; border: none; cursor: pointer;
-      font-family: var(--font-heading); font-size: 0.875rem; font-weight: 500;
-      color: var(--text-muted); padding: 10px 18px;
-      border-bottom: 2px solid transparent; margin-bottom: -1px;
-      white-space: nowrap; transition: all 0.15s;
-    }
-    .tab-btn:hover { color: var(--text-primary); }
-    .tab-btn.active { color: var(--accent-indigo); border-bottom-color: var(--accent-indigo); }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; animation: fadeIn 200ms ease; }
-
-    /* ── Top bar ──────────────────────────────────────────────── */
-    .topbar {
-      background: rgba(10,10,15,0.9); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-subtle);
-      padding: 0 var(--sp-3); position: sticky; top: 0; z-index: 100;
-    }
-    .topbar-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: flex; align-items: center; height: 60px; gap: 16px;
-    }
-    .topbar-logo { font-family: var(--font-mono); font-weight: 700; color: var(--accent-indigo); font-size: 1.05rem; }
-    .topbar-logo span { color: var(--text-primary); }
-    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-    .topbar-name { font-size: 0.85rem; color: var(--text-muted); }
-    .topbar-role { font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 3px 10px; border-radius: var(--radius-pill); background: rgba(99,102,241,0.12); color: var(--accent-indigo); border: 1px solid rgba(99,102,241,0.25); }
-
-    /* ── Student rows ─────────────────────────────────────────── */
-    .student-row {
-      display: grid;
-      grid-template-columns: 2fr 2fr 1fr 1fr 1fr auto;
-      align-items: center; gap: 16px;
-      padding: 14px var(--sp-2);
-      border-bottom: 1px solid var(--border-subtle);
-      transition: background 0.1s;
-    }
-    .student-row:hover { background: rgba(255,255,255,0.02); }
-    .student-row:last-child { border-bottom: none; }
-    .s-name { font-weight: 600; font-size: 0.9375rem; }
-    .s-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
-    .s-title { font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
-    .s-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
-
-    /* ── Faculty table ────────────────────────────────────────── */
-    .faculty-row {
-      display: grid; grid-template-columns: 1fr 2fr 1fr 1fr auto;
-      align-items: center; gap: 16px;
-      padding: 14px var(--sp-2);
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .faculty-row:last-child { border-bottom: none; }
-
-    /* ── Create faculty form ──────────────────────────────────── */
-    .create-form {
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: var(--sp-3); margin-bottom: var(--sp-3);
-    }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: flex-end; }
-    .form-row .form-group { margin-bottom: 0; }
-
-    /* ── Temp password reveal ─────────────────────────────────── */
-    .temp-pw-box {
-      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25);
-      border-radius: var(--radius-md); padding: 14px 18px; margin-top: var(--sp-2);
-      display: none;
-    }
-    .temp-pw-box .pw-val {
-      font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;
-      color: var(--accent-emerald); letter-spacing: 0.1em;
-    }
-    .temp-pw-box p { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
-
-    /* ── Score modal ──────────────────────────────────────────── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(10,10,15,0.88); z-index: 200;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal-box {
-      background: var(--bg-elevated); border: 1px solid var(--border-card);
-      border-radius: var(--radius-xl); padding: var(--sp-4);
-      max-width: 560px; width: 94%; max-height: 90vh; overflow-y: auto;
-    }
-
-    /* ── Score dim rows ───────────────────────────────────────── */
-    .dim-score-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
-    .dim-score-row:last-child { border-bottom: none; }
-    .dim-label { min-width: 130px; font-size: 0.875rem; font-weight: 500; }
-    .dim-dots { display: flex; gap: 6px; }
-    .dim-dot {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: var(--bg-card); border: 1px solid var(--border-subtle);
-      cursor: pointer; font-family: var(--font-mono); font-size: 0.8rem;
-      color: var(--text-muted); display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
-    }
-    .dim-dot:hover { border-color: var(--accent-indigo); color: var(--accent-indigo); transform: scale(1.12); }
-    .dim-dot.sel { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #fff; box-shadow: 0 0 10px rgba(99,102,241,0.4); }
-
-    /* ── Export btn ───────────────────────────────────────────── */
-    .export-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-
-    @media (max-width: 700px) {
-      .student-row { grid-template-columns: 1fr; gap: 6px; }
-      .faculty-row { grid-template-columns: 1fr; gap: 6px; }
-      .form-row { grid-template-columns: 1fr; }
-    }
+    .faculty-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .action-btns { display: flex; gap: 0.5rem; }
   </style>
 </head>
 <body>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <!-- Top bar -->
-  <div class="topbar">
-    <div class="topbar-inner">
-      <a href="index.html" class="topbar-logo">PDRS<span>.dev</span></a>
-      <span style="font-size:0.8rem; color:var(--text-muted);">Faculty Dashboard</span>
-      <div class="topbar-right">
-        <span class="topbar-name" id="topbar-name">—</span>
-        <span class="topbar-role" id="topbar-role">Faculty</span>
-        <button class="btn btn-secondary btn-sm" onclick="logout()">Sign out</button>
-      </div>
+  <main class="container">
+    <div id="faculty-guard" style="display:none; text-align: center; padding: 4rem 0;">
+      <h2>Access Denied</h2>
+      <p style="margin-bottom: 2rem;">Please login as faculty to access this dashboard.</p>
+      <a href="faculty-login.html" class="btn btn-primary">Faculty Login</a>
     </div>
-  </div>
 
-  <main class="main-content">
-    <div class="page-wrapper" style="max-width:1200px;">
-
-      <!-- Metrics -->
-      <div class="metric-grid" id="metric-grid">
-        <div class="metric-card"><div class="metric-label">Total Students</div><div class="metric-value" id="m-students">—</div></div>
-        <div class="metric-card"><div class="metric-label">Total Sessions</div><div class="metric-value" id="m-sessions">—</div></div>
-        <div class="metric-card"><div class="metric-label">Avg Score</div><div class="metric-value" id="m-avg">—</div></div>
-        <div class="metric-card"><div class="metric-label">At-Risk Students</div><div class="metric-value" id="m-atrisk" style="color:var(--accent-red);">—</div></div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="tabs-bar">
-        <button class="tab-btn active" onclick="switchTab('students', this)">All Students</button>
-        <button class="tab-btn" onclick="switchTab('score', this)">Score Responses</button>
-        <button class="tab-btn" onclick="switchTab('questions', this)">Manage Questions</button>
-        <button class="tab-btn" onclick="switchTab('export', this)">Export Reports</button>
-        <button class="tab-btn" id="manage-faculty-tab" onclick="switchTab('faculty', this)" style="display:none;">Manage Faculty</button>
-      </div>
-
-      <!-- ── TAB 1: All Students ──────────────────────────── -->
-      <div class="tab-panel active" id="tab-students">
-        <div style="display:flex; gap:12px; margin-bottom:var(--sp-2); flex-wrap:wrap; align-items:center;">
-          <input type="text" id="s-search" placeholder="Search by name or project…" style="flex:1; min-width:180px;" oninput="filterStudents()">
-          <select id="s-filter" onchange="filterStudents()" style="width:180px;">
-            <option value="">All students</option>
-            <option value="ready">Questions ready</option>
-            <option value="no-q">Needs questions</option>
-            <option value="sessions">Has sessions</option>
-            <option value="atrisk">At-risk (score &lt; 3)</option>
-          </select>
-          <a href="onboarding.html" class="btn btn-primary btn-sm">+ Register Student</a>
+    <div id="faculty-content" class="stagger-children">
+      <div class="faculty-header">
+        <div>
+          <h1>Faculty Dashboard</h1>
+          <p style="color: var(--text-muted);">Manage students, monitor progress, and host live defense sessions.</p>
         </div>
-
-        <!-- skeleton -->
-        <div id="s-skeleton">
-          <div class="skeleton" style="height:64px; border-radius:var(--radius-md); margin-bottom:8px;"></div>
-          <div class="skeleton" style="height:64px; border-radius:var(--radius-md); margin-bottom:8px;"></div>
-          <div class="skeleton" style="height:64px; border-radius:var(--radius-md);"></div>
-        </div>
-
-        <div class="card card-static" style="padding:0; overflow:hidden; display:none;" id="s-table-wrap">
-          <!-- header row -->
-          <div class="student-row" style="padding:10px var(--sp-2); background:var(--bg-elevated); cursor:default;">
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Student</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Project</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Status</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Sessions</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Score Δ</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); text-align:right;">Actions</span>
-          </div>
-          <div id="s-tbody"></div>
-        </div>
-
-        <div class="empty-state" id="s-empty" style="display:none;">
-          <h3>No students yet</h3>
-          <p>Register a student to get started.</p>
-          <a href="onboarding.html" class="btn btn-primary btn-sm">Register First Student →</a>
+        <div class="action-btns">
+          <a href="analytics.html" class="btn btn-secondary">Cohort Analytics</a>
+          <button id="logout-btn" class="btn btn-ghost">Logout</button>
         </div>
       </div>
 
-      <!-- ── TAB 2: Score Responses ──────────────────────── -->
-      <div class="tab-panel" id="tab-score">
-        <p style="color:var(--text-muted); margin-bottom:var(--sp-3); font-size:0.9rem;">Select a student and question to score their response manually.</p>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:var(--sp-3);">
-          <div class="form-group" style="margin:0;">
-            <label>Student</label>
-            <select id="score-student-sel" onchange="loadStudentQuestions()">
-              <option value="">Select student…</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label>Question</label>
-            <select id="score-question-sel">
-              <option value="">Select question…</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="card card-static" id="score-area" style="display:none;">
-          <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;">Question</div>
-          <p id="score-q-text" style="font-size:1.05rem; font-weight:500; margin-bottom:var(--sp-3);"></p>
-
-          <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px;">Score Dimensions</div>
-          <div id="score-dims"></div>
-
-          <div class="form-group" style="margin-top:var(--sp-2);">
-            <label>Feedback for Student</label>
-            <textarea id="score-feedback" rows="3" placeholder="Specific, actionable feedback (2–3 sentences)…"></textarea>
-          </div>
-
-          <div id="score-msg"></div>
-          <button class="btn btn-primary" onclick="submitFacultyScore()">Submit Score</button>
-        </div>
-        <div id="score-select-hint" style="color:var(--text-muted); font-size:0.875rem; margin-top:var(--sp-2);">Select a student and question above to start scoring.</div>
-      </div>
-
-      <!-- ── TAB 3: Manage Questions ─────────────────────── -->
-      <div class="tab-panel" id="tab-questions">
-        <p style="color:var(--text-muted); margin-bottom:var(--sp-3); font-size:0.9rem;">Generate or regenerate AI questions for any student. View and edit existing question sets.</p>
-        <div class="form-group" style="max-width:360px; margin-bottom:var(--sp-3);">
-          <label>Select Student</label>
-          <select id="q-student-sel" onchange="loadStudentQuestionsPanel()">
-            <option value="">Choose student…</option>
-          </select>
-        </div>
-
-        <div id="q-panel" style="display:none;">
-          <div style="display:flex; gap:10px; align-items:center; margin-bottom:var(--sp-3); flex-wrap:wrap;">
-            <button class="btn btn-primary" onclick="regenQuestions()" id="regen-btn">🤖 Generate / Regenerate Questions</button>
-            <span id="q-gen-status" style="font-size:0.85rem; color:var(--text-muted);"></span>
-          </div>
-          <div id="q-list"></div>
+      <div class="card">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Year/Branch</th>
+                <th>Project Title</th>
+                <th>Sessions</th>
+                <th>Baseline</th>
+                <th>Final</th>
+                <th>Δ</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="students-tbody">
+              <!-- Skeleton rows -->
+              <tr><td colspan="8"><div class="skeleton" style="height: 40px; margin: 0.5rem 0;"></div></td></tr>
+              <tr><td colspan="8"><div class="skeleton" style="height: 40px; margin: 0.5rem 0;"></div></td></tr>
+              <tr><td colspan="8"><div class="skeleton" style="height: 40px; margin: 0.5rem 0;"></div></td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-
-      <!-- ── TAB 4: Export Reports ───────────────────────── -->
-      <div class="tab-panel" id="tab-export">
-        <p style="color:var(--text-muted); margin-bottom:var(--sp-3); font-size:0.9rem;">Download a JSON report for any student containing scores, questions, and project details.</p>
-
-        <div class="card card-static">
-          <h3 style="margin-bottom:var(--sp-2); font-size:1rem;">Student Report</h3>
-          <div class="export-row">
-            <select id="export-student-sel" style="width:260px;">
-              <option value="">Select student…</option>
-            </select>
-            <button class="btn btn-primary" onclick="exportStudent()">⬇ Export JSON</button>
-          </div>
-        </div>
-
-        <div class="card card-static" style="margin-top:var(--sp-3);">
-          <h3 style="margin-bottom:var(--sp-2); font-size:1rem;">Full Cohort Export</h3>
-          <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Download analytics for all students including dimension weaknesses, at-risk list, and top performers.</p>
-          <button class="btn btn-secondary" onclick="exportCohort()">⬇ Export Cohort Analytics</button>
-        </div>
-      </div>
-
-      <!-- ── TAB 5: Manage Faculty (admin only) ──────────── -->
-      <div class="tab-panel" id="tab-faculty">
-        <div class="create-form">
-          <h3 style="font-size:1rem; margin-bottom:var(--sp-2);">Create Faculty Login ID</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Full Name</label>
-              <input type="text" id="fc-name" placeholder="Dr. Sharma">
-            </div>
-            <div class="form-group">
-              <label>Email</label>
-              <input type="email" id="fc-email" placeholder="sharma@college.edu">
-            </div>
-            <div class="form-group">
-              <label>Role</label>
-              <select id="fc-role">
-                <option value="faculty">Faculty</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" onclick="createFaculty()" id="fc-btn" style="height:46px; margin-top:auto;">Create →</button>
-          </div>
-          <div id="fc-msg"></div>
-          <div class="temp-pw-box" id="temp-pw-box">
-            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">Temporary password — share this with the faculty member:</div>
-            <div class="pw-val" id="temp-pw-val"></div>
-            <p>They will be required to change it on first login.</p>
-          </div>
-        </div>
-
-        <div class="card card-static" style="padding:0; overflow:hidden;">
-          <!-- header -->
-          <div class="faculty-row" style="background:var(--bg-elevated); cursor:default;">
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Name</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Email</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Role</span>
-            <span style="font-family:var(--font-mono); font-size:0.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted);">Created</span>
-            <span></span>
-          </div>
-          <div id="faculty-list"></div>
-        </div>
-      </div>
-
     </div>
   </main>
 
-  <!-- Delete student modal -->
-  <div class="modal-overlay" id="del-modal">
-    <div class="modal-box" style="max-width:380px;">
-      <h3 style="margin-bottom:8px;">Delete Student?</h3>
-      <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:var(--sp-3);">This permanently removes the student and all their scores. Cannot be undone.</p>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('del-modal')">Cancel</button>
-        <button class="btn" style="flex:1; background:var(--accent-red); color:#fff;" id="del-confirm-btn">Delete</button>
-      </div>
-    </div>
-  </div>
-
+  <script src="nav.js"></script>
   <script>
-    // ── Auth guard ─────────────────────────────────────────────────────────
-    const TOKEN = localStorage.getItem('pdrs_faculty_token');
-    const FNAME = localStorage.getItem('pdrs_faculty_name') || 'Faculty';
-    const FROLE = localStorage.getItem('pdrs_faculty_role') || 'faculty';
-
-    if (!TOKEN || localStorage.getItem('pdrs_role') !== 'faculty') {
-      window.location.href = 'faculty-login.html';
+    const facultyToken = localStorage.getItem('facultyToken');
+    if (!facultyToken) {
+      document.getElementById('faculty-guard').style.display = 'block';
+      document.getElementById('faculty-content').style.display = 'none';
+    } else {
+      loadStudents();
     }
 
-    document.getElementById('topbar-name').textContent = FNAME;
-    document.getElementById('topbar-role').textContent = FROLE === 'admin' ? 'Admin' : 'Faculty';
-    if (FROLE === 'admin') {
-      document.getElementById('manage-faculty-tab').style.display = '';
-    }
-
-    function authHeaders() {
-      return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` };
-    }
-
-    function logout() {
-      localStorage.removeItem('pdrs_faculty_token');
-      localStorage.removeItem('pdrs_faculty_name');
-      localStorage.removeItem('pdrs_faculty_role');
-      localStorage.removeItem('pdrs_role');
-      window.location.href = 'faculty-login.html';
-    }
-
-    // ── Tab switching ──────────────────────────────────────────────────────
-    function switchTab(id, btn) {
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('tab-' + id).classList.add('active');
-      btn.classList.add('active');
-    }
-
-    // ── Modals ─────────────────────────────────────────────────────────────
-    function openModal(id) { document.getElementById(id).classList.add('open'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-    // ── State ──────────────────────────────────────────────────────────────
-    let allStudents = [];
-    let delTargetId = null;
-
-    // ── Load everything on mount ───────────────────────────────────────────
-    async function init() {
-      await Promise.all([loadStudents(), loadMetrics()]);
-      if (FROLE === 'admin') loadFacultyList();
-    }
-
-    async function loadMetrics() {
-      try {
-        const r = await fetch('/api/analytics/cohort');
-        const d = await r.json();
-        document.getElementById('m-students').textContent = d.totalStudents ?? '—';
-        document.getElementById('m-sessions').textContent = d.studentsWithMultipleSessions ?? '—';
-        const avgDims = Object.values(d.dimensionAverages || {});
-        const avg = avgDims.length ? (avgDims.reduce((a,b)=>a+b,0)/avgDims.length).toFixed(2) : '—';
-        document.getElementById('m-avg').textContent = avg !== '—' ? avg + '/5' : '—';
-        document.getElementById('m-atrisk').textContent = (d.atRisk || []).length;
-      } catch {}
-    }
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('facultyToken');
+      localStorage.removeItem('facultyRole');
+      window.location.href = 'index.html';
+    });
 
     async function loadStudents() {
       try {
-        const r = await fetch('/api/students');
-        allStudents = await r.json();
-        document.getElementById('s-skeleton').style.display = 'none';
-
-        // Populate all student selects
-        ['score-student-sel','q-student-sel','export-student-sel'].forEach(id => {
-          const sel = document.getElementById(id);
-          const cur = sel.value;
-          // keep first option
-          while (sel.options.length > 1) sel.remove(1);
-          allStudents.forEach(s => {
-            const o = document.createElement('option');
-            o.value = s.id; o.textContent = s.name + ' — ' + s.title;
-            sel.appendChild(o);
-          });
-          sel.value = cur;
-        });
-
-        if (!allStudents.length) {
-          document.getElementById('s-empty').style.display = 'flex';
-        } else {
-          document.getElementById('s-table-wrap').style.display = 'block';
-          renderStudents(allStudents);
-        }
-      } catch (e) {
-        document.getElementById('s-skeleton').style.display = 'none';
+        const res = await fetch('/api/students');
+        if (!res.ok) throw new Error('Failed to fetch students');
+        const students = await res.json();
+        renderStudents(students);
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     }
 
-    function filterStudents() {
-      const q   = document.getElementById('s-search').value.toLowerCase();
-      const fil = document.getElementById('s-filter').value;
-      const filtered = allStudents.filter(s => {
-        const mq = !q || s.name.toLowerCase().includes(q) || s.title.toLowerCase().includes(q);
-        const mf = !fil
-          || (fil === 'ready'    && s.questionsGenerated)
-          || (fil === 'no-q'    && !s.questionsGenerated)
-          || (fil === 'sessions' && s.sessionCount > 0)
-          || (fil === 'atrisk'  && s.final !== null && s.final < 3.0);
-        return mq && mf;
-      });
-      renderStudents(filtered);
-    }
-
-    function renderStudents(list) {
-      const tbody = document.getElementById('s-tbody');
-      if (!list.length) {
-        tbody.innerHTML = '<div style="padding:32px; text-align:center; color:var(--text-muted); font-size:0.875rem;">No students match the filter.</div>';
+    function renderStudents(students) {
+      const tbody = document.getElementById('students-tbody');
+      if (students.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">No students registered yet.</td></tr>';
         return;
       }
-      tbody.innerHTML = list.map(s => {
-        const delta = s.baseline !== null && s.final !== null ? (s.final - s.baseline) : null;
-        const deltaHtml = delta !== null
-          ? `<span class="${delta>0?'delta-positive':delta<0?'delta-negative':'delta-neutral'}">${delta>0?'+':''}${delta.toFixed(2)}</span>`
-          : '<span style="color:var(--text-muted)">—</span>';
-        const statusBadge = s.questionsGenerated
-          ? `<span class="badge badge-emerald">✓ Ready</span>`
-          : `<span class="badge badge-orange">Needs Qs</span>`;
 
-        return `<div class="student-row" style="cursor:pointer;" onclick="goProfile('${s.id}')">
-          <div>
-            <div class="s-name">${s.name}</div>
-            <div class="s-meta">${[s.year,s.branch].filter(Boolean).join(' · ') || '—'}</div>
-          </div>
-          <div class="s-title">${s.title}</div>
-          <div>${statusBadge}</div>
-          <div style="font-family:var(--font-mono);">${s.sessionCount || 0}</div>
-          <div>${deltaHtml}</div>
-          <div class="s-actions" onclick="event.stopPropagation()">
-            <a href="questions.html?id=${s.id}" class="btn btn-secondary btn-sm">Questions</a>
-            ${s.questionsGenerated ? `<a href="defense.html?id=${s.id}" class="btn btn-primary btn-sm">Defense</a>` : ''}
-            <button class="btn btn-sm" style="background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);"
-              onclick="openDelModal('${s.id}')">✕</button>
-          </div>
-        </div>`;
+      tbody.innerHTML = students.map((s, i) => {
+        const delta = s.final - s.baseline;
+        const deltaClass = delta > 0 ? 'delta-up' : (delta < 0 ? 'delta-down' : '');
+        const deltaIcon = delta > 0 ? '↑' : (delta < 0 ? '↓' : '-');
+
+        return `
+          <tr class="stagger-children" style="animation-delay: ${i * 0.05}s">
+            <td style="font-weight: 600;">${s.name}</td>
+            <td style="font-size: 0.8rem; color: var(--text-muted);">${s.year} / ${s.branch}</td>
+            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${s.title}">${s.title}</td>
+            <td>${s.sessionCount}</td>
+            <td>${(s.baseline || 0).toFixed(2)}</td>
+            <td>${(s.final || 0).toFixed(2)}</td>
+            <td class="${deltaClass}" style="font-weight: 700;">${deltaIcon} ${(Math.abs(delta) || 0).toFixed(2)}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn btn-ghost btn-sm" onclick="generateQuestions('${s.id}', this)" ${s.questionsGenerated?'disabled':''}>
+                  ${s.questionsGenerated ? 'Ready' : 'Gen Qs'}
+                </button>
+                <a href="session-create.html?studentId=${s.id}" class="btn btn-secondary btn-sm">Host</a>
+                <a href="profile.html?studentId=${s.id}" class="btn btn-ghost btn-sm">Profile</a>
+                <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}', this)">×</button>
+              </div>
+            </td>
+          </tr>
+        `;
       }).join('');
     }
 
-    function goProfile(id) { window.location.href = `profile.html?id=${id}`; }
-
-    // Delete student
-    function openDelModal(id) { delTargetId = id; openModal('del-modal'); }
-    document.getElementById('del-confirm-btn').addEventListener('click', async () => {
-      if (!delTargetId) return;
-      await fetch(`/api/students/${delTargetId}`, { method: 'DELETE' });
-      closeModal('del-modal'); delTargetId = null;
-      await loadStudents();
-    });
-
-    // ── Score tab ──────────────────────────────────────────────────────────
-    async function loadStudentQuestions() {
-      const id = document.getElementById('score-student-sel').value;
-      const qSel = document.getElementById('score-question-sel');
-      while (qSel.options.length > 1) qSel.remove(1);
-      document.getElementById('score-area').style.display = 'none';
-      document.getElementById('score-select-hint').style.display = '';
-      if (!id) return;
+    async function generateQuestions(id, btn) {
+      btn.classList.add('btn--loading');
       try {
-        const r = await fetch(`/api/questions/${id}`);
-        if (!r.ok) { qSel.options[0].text = 'No questions generated yet'; return; }
-        const d = await r.json();
-        const all = [
-          ...(d.questions.tier1||[]).map((q,i)=>({q,tier:'T1',idx:i})),
-          ...(d.questions.tier2||[]).map((q,i)=>({q,tier:'T2',idx:i})),
-          ...(d.questions.tier3||[]).map((q,i)=>({q,tier:'T3',idx:i}))
-        ];
-        all.forEach((item, gi) => {
-          const o = document.createElement('option');
-          o.value = gi; o.textContent = `[${item.tier}] ${item.q.slice(0,80)}…`;
-          o.dataset.q = item.q;
-          qSel.appendChild(o);
-        });
-        qSel.onchange = () => {
-          const opt = qSel.options[qSel.selectedIndex];
-          if (!opt.dataset.q) return;
-          document.getElementById('score-q-text').textContent = opt.dataset.q;
-          renderScoreDims();
-          document.getElementById('score-area').style.display = 'block';
-          document.getElementById('score-select-hint').style.display = 'none';
-        };
-      } catch {}
-    }
-
-    function renderScoreDims() {
-      const dims = [
-        { key:'clarity',   label:'Clarity' },
-        { key:'reasoning', label:'Reasoning' },
-        { key:'depth',     label:'Depth' },
-        { key:'confidence',label:'Confidence' }
-      ];
-      document.getElementById('score-dims').innerHTML = dims.map(d => `
-        <div class="dim-score-row">
-          <span class="dim-label">${d.label}</span>
-          <div class="dim-dots" data-dim="${d.key}">
-            ${[1,2,3,4,5].map(n=>`<button class="dim-dot" data-val="${n}">${n}</button>`).join('')}
-          </div>
-        </div>`).join('');
-
-      document.querySelectorAll('.dim-dot').forEach(dot => {
-        dot.addEventListener('click', () => {
-          dot.closest('.dim-dots').querySelectorAll('.dim-dot').forEach(d => d.classList.remove('sel'));
-          dot.classList.add('sel');
-        });
-      });
-    }
-
-    async function submitFacultyScore() {
-      const studentId = document.getElementById('score-student-sel').value;
-      const qSel      = document.getElementById('score-question-sel');
-      const questionText = qSel.options[qSel.selectedIndex]?.dataset?.q || '';
-      const feedback  = document.getElementById('score-feedback').value.trim();
-      const msg       = document.getElementById('score-msg');
-
-      const scores = {};
-      let allFilled = true;
-      document.querySelectorAll('.dim-dots').forEach(row => {
-        const sel = row.querySelector('.dim-dot.sel');
-        scores[row.dataset.dim] = sel ? parseInt(sel.dataset.val) : 0;
-        if (!scores[row.dataset.dim]) allFilled = false;
-      });
-
-      if (!allFilled) { msg.innerHTML = '<div class="msg-error">Please score all 4 dimensions.</div>'; return; }
-      if (!feedback)  { msg.innerHTML = '<div class="msg-error">Please add feedback for the student.</div>'; return; }
-
-      msg.innerHTML = '';
-      try {
-        const r = await fetch('/api/scores', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({
-            studentId,
-            sessionType: 'faculty',
-            responses: [{ questionText, scores, feedback, scoredBy: FNAME, scoredAt: new Date().toISOString() }]
-          })
-        });
-        if (!r.ok) throw new Error((await r.json()).error);
-        msg.innerHTML = '<div class="msg-success">✓ Score submitted successfully.</div>';
-        document.getElementById('score-feedback').value = '';
-        document.querySelectorAll('.dim-dot').forEach(d => d.classList.remove('sel'));
-      } catch (e) {
-        msg.innerHTML = `<div class="msg-error">⚠ ${e.message}</div>`;
+        const res = await fetch(`/api/generate-questions/${id}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Generation failed');
+        showToast('Questions generated!', 'success');
+        loadStudents();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.classList.remove('btn--loading');
       }
     }
 
-    // ── Questions tab ──────────────────────────────────────────────────────
-    async function loadStudentQuestionsPanel() {
-      const id = document.getElementById('q-student-sel').value;
-      const panel = document.getElementById('q-panel');
-      const list  = document.getElementById('q-list');
-      if (!id) { panel.style.display = 'none'; return; }
-      panel.style.display = 'block';
-      list.innerHTML = '<div class="skeleton" style="height:200px; border-radius:var(--radius-md);"></div>';
+    async function deleteStudent(id, btn) {
+      if (!confirm('Are you sure you want to delete this student and all their data?')) return;
+      
+      btn.closest('tr').style.opacity = '0.5';
       try {
-        const r = await fetch(`/api/questions/${id}`);
-        if (!r.ok) { list.innerHTML = '<p style="color:var(--text-muted);">No questions yet. Click Generate above.</p>'; return; }
-        const d = await r.json();
-        renderQuestionList(d.questions);
-      } catch { list.innerHTML = '<p style="color:var(--text-muted);">Failed to load questions.</p>'; }
-    }
-
-    function renderQuestionList(qs) {
-      const tiers = [
-        { key:'tier1', label:'Tier 1 — Surface Clarity', cls:'tier-1' },
-        { key:'tier2', label:'Tier 2 — Design Tradeoffs', cls:'tier-2' },
-        { key:'tier3', label:'Tier 3 — Failure Modes', cls:'tier-3' }
-      ];
-      document.getElementById('q-list').innerHTML = tiers.map(t => `
-        <div class="tier-section">
-          <div class="tier-header ${t.cls}"><h3>${t.label}</h3></div>
-          ${(qs[t.key]||[]).map((q,i) => `
-            <div class="question-card ${t.cls}">
-              <div class="q-text">${i+1}. ${q}</div>
-            </div>`).join('')}
-        </div>`).join('');
-    }
-
-    async function regenQuestions() {
-      const id  = document.getElementById('q-student-sel').value;
-      const btn = document.getElementById('regen-btn');
-      const st  = document.getElementById('q-gen-status');
-      if (!id) return;
-      btn.disabled = true; btn.textContent = '⏳ Generating…';
-      st.textContent = 'This takes 10–20 seconds…';
-      try {
-        const r = await fetch(`/api/generate-questions/${id}`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({}) });
-        if (!r.ok) throw new Error((await r.json()).error);
-        const d = await r.json();
-        renderQuestionList(d.questions);
-        st.textContent = '✓ Questions generated';
-        st.style.color = 'var(--accent-emerald)';
-      } catch (e) {
-        st.textContent = '⚠ ' + e.message;
-        st.style.color = 'var(--accent-red)';
+        const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        showToast('Student deleted', 'info');
+        loadStudents();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.closest('tr').style.opacity = '1';
       }
-      btn.disabled = false; btn.textContent = '🤖 Generate / Regenerate Questions';
     }
-
-    // ── Export tab ─────────────────────────────────────────────────────────
-    async function exportStudent() {
-      const id = document.getElementById('export-student-sel').value;
-      if (!id) return alert('Select a student first.');
-      const r  = await fetch(`/api/export/${id}`);
-      const d  = await r.json();
-      download(`pdrs_export_${id}.json`, JSON.stringify(d, null, 2));
-    }
-
-    async function exportCohort() {
-      const r = await fetch('/api/analytics/cohort');
-      const d = await r.json();
-      download(`pdrs_cohort_${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(d, null, 2));
-    }
-
-    function download(filename, text) {
-      const a = document.createElement('a');
-      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
-      a.download = filename; a.click();
-    }
-
-    // ── Faculty management (admin only) ───────────────────────────────────
-    async function loadFacultyList() {
-      try {
-        const r = await fetch('/api/faculty/list', { headers: authHeaders() });
-        if (!r.ok) return;
-        const list = await r.json();
-        renderFacultyList(list);
-      } catch {}
-    }
-
-    function renderFacultyList(list) {
-      document.getElementById('faculty-list').innerHTML = list.map(f => `
-        <div class="faculty-row">
-          <div style="font-weight:600;">${f.name}</div>
-          <div style="font-size:0.875rem; color:var(--text-secondary);">${f.email}</div>
-          <div>${f.role === 'admin'
-            ? '<span class="badge badge-indigo">Admin</span>'
-            : '<span class="badge badge-emerald">Faculty</span>'}</div>
-          <div style="font-size:0.8rem; color:var(--text-muted);">${new Date(f.createdAt).toLocaleDateString()}</div>
-          <div>
-            ${f.id !== (jwtPayload()?.id)
-              ? `<button class="btn btn-sm" style="background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);"
-                  onclick="deleteFaculty('${f.id}','${f.name}')">Remove</button>`
-              : '<span style="font-size:0.75rem;color:var(--text-muted);">You</span>'}
-          </div>
-        </div>`).join('');
-    }
-
-    async function createFaculty() {
-      const name  = document.getElementById('fc-name').value.trim();
-      const email = document.getElementById('fc-email').value.trim();
-      const role  = document.getElementById('fc-role').value;
-      const msg   = document.getElementById('fc-msg');
-      const btn   = document.getElementById('fc-btn');
-      const pwBox = document.getElementById('temp-pw-box');
-      msg.innerHTML = ''; pwBox.style.display = 'none';
-      if (!name || !email) { msg.innerHTML = '<div class="msg-error">Name and email are required.</div>'; return; }
-      btn.disabled = true; btn.textContent = 'Creating…';
-      try {
-        const r = await fetch('/api/faculty/create', {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ name, email, role })
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        document.getElementById('temp-pw-val').textContent = d.tempPassword;
-        pwBox.style.display = 'block';
-        document.getElementById('fc-name').value = '';
-        document.getElementById('fc-email').value = '';
-        msg.innerHTML = `<div class="msg-success">✓ Faculty account created for ${name}.</div>`;
-        loadFacultyList();
-      } catch (e) {
-        msg.innerHTML = `<div class="msg-error">⚠ ${e.message}</div>`;
-      }
-      btn.disabled = false; btn.textContent = 'Create →';
-    }
-
-    async function deleteFaculty(id, name) {
-      if (!confirm(`Remove faculty account for ${name}? This cannot be undone.`)) return;
-      try {
-        const r = await fetch(`/api/faculty/${id}`, { method: 'DELETE', headers: authHeaders() });
-        if (!r.ok) throw new Error((await r.json()).error);
-        loadFacultyList();
-      } catch (e) { alert('Error: ' + e.message); }
-    }
-
-    function jwtPayload() {
-      try {
-        const token = TOKEN;
-        const b = token.split('.')[1];
-        return JSON.parse(atob(b.replace(/-/g,'+').replace(/_/g,'/')));
-      } catch { return null; }
-    }
-
-    // ── Boot ───────────────────────────────────────────────────────────────
-    init();
   </script>
 </body>
 </html>

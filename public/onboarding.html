@@ -3,319 +3,268 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Onboarding — PDRS</title>
+  <title>Student Registration - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    .onboarding-card { max-width: 800px; margin: 2rem auto; }
+    .arch-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; margin-bottom: 1.5rem; animation: slideInRight 0.4s var(--ease-quick); }
+    .progress-header { margin-bottom: 3rem; }
+    .char-count { font-size: 0.75rem; color: var(--text-faint); text-align: right; margin-top: 0.25rem; }
+    #returning-banner { display: none; background: var(--accent-indigo-glow); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 2rem; border: 1px solid var(--accent-indigo); animation: fadeInUp 0.5s ease-out; }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="onboarding"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper" style="max-width:720px;">
+  <main class="container">
+    <div id="returning-banner">
+      <p>Welcome back! You already have a registered project. <a href="dashboard.html" style="color: var(--accent-indigo); font-weight: 700;">Go to Dashboard →</a></p>
+    </div>
 
-      <div class="page-header">
-        <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">STEP 1 OF 4</p>
-        <h1>Student Onboarding</h1>
-        <p>Register a student and capture project details for AI question generation.</p>
-      </div>
-
-      <!-- Step Indicator -->
-      <div class="step-indicator" style="margin-bottom:var(--sp-4);">
-        <div class="step-item">
-          <div class="step-circle active" id="sc-1">1</div>
-          <span class="step-label active" id="sl-1">Basic Info</span>
-          <div class="step-divider"></div>
-        </div>
-        <div class="step-item">
-          <div class="step-circle inactive" id="sc-2">2</div>
-          <span class="step-label" id="sl-2">Architecture</span>
-          <div class="step-divider"></div>
-        </div>
-        <div class="step-item">
-          <div class="step-circle inactive" id="sc-3">3</div>
-          <span class="step-label" id="sl-3">Review</span>
+    <div class="card onboarding-card glass stagger-children">
+      <div class="progress-header">
+        <h2 class="gradient-text" style="font-size: 2rem; margin-bottom: 0.5rem;">Project Registration</h2>
+        <div class="step-indicator">
+          <div class="step-dot active" data-step="1"></div>
+          <div class="step-dot" data-step="2"></div>
+          <div class="step-dot" data-step="3"></div>
         </div>
       </div>
 
-      <div id="msg"></div>
-
-      <!-- Step 1: Basic Info -->
-      <div class="form-step active" id="step-1">
-        <div class="card card-static">
-          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-3);">Basic Information</h2>
-
-          <div class="form-group">
-            <label>Student Name <span style="color:var(--accent-red);">*</span></label>
-            <input type="text" id="name" placeholder="e.g. Priya Sharma" autocomplete="off">
-            <div class="field-error" id="err-name" style="display:none; color:var(--accent-red); font-size:0.8rem; margin-top:-8px; margin-bottom:8px;">Name is required</div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <form id="onboarding-form">
+        <!-- Step 1: Personal Info -->
+        <div class="step-container active" id="step-1">
+          <h3 style="margin-bottom: 1.5rem;">Step 1: Personal Information</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
             <div class="form-group">
-              <label>Year</label>
-              <select id="year">
-                <option value="">Select year</option>
-                <option>1st Year</option>
-                <option>2nd Year</option>
-                <option>3rd Year</option>
-                <option>4th Year</option>
-                <option>PG / M.Tech</option>
-              </select>
+              <input type="text" name="name" class="form-input" required placeholder=" ">
+              <label class="form-label-floating">Full Name</label>
             </div>
             <div class="form-group">
-              <label>Branch</label>
-              <select id="branch">
-                <option value="">Select branch</option>
-                <option>Computer Science</option>
-                <option>Information Technology</option>
-                <option>Electronics & Communication</option>
-                <option>Electrical Engineering</option>
-                <option>Mechanical Engineering</option>
-                <option>Civil Engineering</option>
-                <option>Other</option>
+              <select name="year" class="form-select" required>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
               </select>
+              <label class="form-label" style="font-size: 0.75rem; margin-top: 0.25rem;">Academic Year</label>
+            </div>
+            <div class="form-group">
+              <select name="branch" class="form-select" required>
+                <option value="CS">Computer Science</option>
+                <option value="IT">Information Technology</option>
+                <option value="ECE">Electronics</option>
+              </select>
+              <label class="form-label" style="font-size: 0.75rem; margin-top: 0.25rem;">Department</label>
             </div>
           </div>
+          <div style="text-align: right; margin-top: 2rem;">
+            <button type="button" class="btn btn-primary next-step">Next Step: Project Details →</button>
+          </div>
+        </div>
 
+        <!-- Step 2: Project Details -->
+        <div class="step-container" id="step-2">
+          <h3 style="margin-bottom: 1.5rem;">Step 2: Project Details</h3>
           <div class="form-group">
-            <label>Project Title <span style="color:var(--accent-red);">*</span></label>
-            <input type="text" id="title" placeholder="e.g. Real-Time Collaborative Code Editor">
-            <div class="field-error" id="err-title" style="display:none; color:var(--accent-red); font-size:0.8rem; margin-top:-8px; margin-bottom:8px;">Project title is required</div>
+            <input type="text" name="title" class="form-input" required placeholder=" ">
+            <label class="form-label-floating">Project Title</label>
           </div>
-
           <div class="form-group">
-            <label>Project Description</label>
-            <textarea id="description" rows="4" placeholder="Describe what your system does, who uses it, and why it matters. The more detail here, the better the AI questions will be."></textarea>
+            <textarea name="description" class="form-textarea" rows="4" required placeholder=" " maxlength="500"></textarea>
+            <label class="form-label-floating">Detailed Description</label>
+            <div class="char-count"><span id="desc-count">0</span>/500</div>
           </div>
-
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="goStep(2)">Next: Architecture →</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2: Architecture -->
-      <div class="form-step" id="step-2">
-        <div class="card card-static" style="margin-bottom:var(--sp-3);">
-          <h2 style="font-size:1.125rem; margin-bottom:8px;">Architecture Decisions</h2>
-          <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:var(--sp-3);">Document your key design decisions. This is what the AI will probe — be honest and specific. Aim for at least 2 decisions.</p>
-
-          <div id="decisions-container"></div>
-
-          <button class="btn btn-secondary btn-sm" id="add-decision-btn" onclick="addDecision()">+ Add Another Decision</button>
-        </div>
-
-        <div class="card card-static">
           <div class="form-group">
-            <label>Known Limitations</label>
-            <textarea id="limitations" rows="3" placeholder="e.g. No offline mode; performance degrades beyond 50 concurrent users; no authentication yet."></textarea>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Being honest here leads to better coaching questions.</p>
+            <input type="text" name="limitations" class="form-input" placeholder=" ">
+            <label class="form-label-floating">Known Limitations (Comma separated)</label>
           </div>
-
-          <div class="btn-group">
-            <button class="btn btn-secondary" onclick="goStep(1)">← Back</button>
-            <button class="btn btn-primary" onclick="goStep(3)">Next: Review →</button>
+          <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+            <button type="button" class="btn btn-secondary prev-step">← Back</button>
+            <button type="button" class="btn btn-primary next-step">Next Step: Architecture →</button>
           </div>
         </div>
-      </div>
 
-      <!-- Step 3: Review -->
-      <div class="form-step" id="step-3">
-        <div class="card card-static" style="margin-bottom:var(--sp-3);">
-          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-3);">Review & Submit</h2>
-
-          <div style="display:grid; gap:16px;">
-            <div style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:16px;">
-              <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Student</div>
-              <div id="review-name" style="font-size:1.125rem; font-weight:600;"></div>
-              <div id="review-meta" style="font-size:0.875rem; color:var(--text-muted); margin-top:2px;"></div>
-            </div>
-
-            <div style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:16px;">
-              <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Project</div>
-              <div id="review-title" style="font-size:1.0625rem; font-weight:600; margin-bottom:6px;"></div>
-              <div id="review-description" style="font-size:0.875rem; color:var(--text-secondary); line-height:1.6;"></div>
-            </div>
-
-            <div style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:16px;">
-              <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px;">Architecture Decisions</div>
-              <div id="review-decisions"></div>
-            </div>
-
-            <div style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:16px;">
-              <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Known Limitations</div>
-              <div id="review-limitations" style="font-size:0.875rem; color:var(--text-secondary);"></div>
+        <!-- Step 3: Architecture -->
+        <div class="step-container" id="step-3">
+          <h3 style="margin-bottom: 1.5rem;">Step 3: Architecture Decisions</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">List key technical choices and their alternatives.</p>
+          <div id="arch-rows-container">
+            <div class="arch-row">
+              <div class="form-group" style="margin-bottom:0;">
+                <input type="text" name="decision" class="form-input" placeholder=" " required>
+                <label class="form-label-floating">Decision (e.g. React)</label>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <input type="text" name="alternatives" class="form-input" placeholder=" " required>
+                <label class="form-label-floating">Alternatives</label>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <input type="text" name="reason" class="form-input" placeholder=" " required>
+                <label class="form-label-floating">Reasoning</label>
+              </div>
+              <button type="button" class="btn btn-ghost remove-row">×</button>
             </div>
           </div>
-
-          <div class="btn-group">
-            <button class="btn btn-secondary" onclick="goStep(2)">← Back</button>
-            <button class="btn btn-primary" id="submit-btn" onclick="submitStudent()">Submit Student ✓</button>
+          <button type="button" id="add-arch-row" class="btn btn-secondary" style="margin-top: 1rem;">+ Add Technical Decision</button>
+          
+          <div style="display: flex; justify-content: space-between; margin-top: 3rem; border-top: 1px solid var(--border-subtle); padding-top: 2rem;">
+            <button type="button" class="btn btn-secondary prev-step">← Back</button>
+            <button type="submit" class="btn btn-primary btn-lg">Complete Registration & Generate Questions</button>
           </div>
         </div>
-      </div>
-
+      </form>
     </div>
   </main>
 
-  <!-- Success Overlay -->
-  <div class="success-overlay" id="success-overlay">
-    <svg class="success-checkmark" viewBox="0 0 80 80">
-      <circle cx="40" cy="40" r="38"/>
-      <path d="M24 40l12 12 20-20"/>
-    </svg>
-    <h2 style="margin-bottom:8px;">Student Registered!</h2>
-    <p id="success-name" style="color:var(--text-muted); margin-bottom:var(--sp-4);"></p>
-    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;">
-      <a id="go-questions-btn" href="#" class="btn btn-primary btn-lg">Generate Questions →</a>
-      <button class="btn btn-secondary" onclick="resetForm()">Register Another</button>
-    </div>
+  <div id="success-overlay" style="display:none; position:fixed; inset:0; background:rgba(15,17,23,0.95); z-index:2000; align-items:center; justify-content:center; flex-direction:column; backdrop-filter: blur(10px);">
+    <div style="font-size: 6rem; animation: popIn 0.6s var(--ease-bounce);">✅</div>
+    <h2 class="gradient-text" style="font-size: 2.5rem; margin-top: 1.5rem;">Registration Successful!</h2>
+    <p style="color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem;">AI is analyzing your project architecture...</p>
   </div>
 
+  <script src="nav.js"></script>
   <script>
-    let decisionCount = 0;
-    let createdStudentId = null;
+    let currentStep = 1;
+    const form = document.getElementById('onboarding-form');
 
-    function addDecision(prefill = {}) {
-      decisionCount++;
-      const container = document.getElementById('decisions-container');
-      const div = document.createElement('div');
-      div.className = 'decision-block';
-      div.dataset.idx = decisionCount;
-      div.style.cssText = 'background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px; margin-bottom:16px; position:relative;';
-      div.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo);">DECISION ${decisionCount}</span>
-          ${decisionCount > 1 ? `<button onclick="this.closest('.decision-block').remove()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; font-size:1rem;">✕</button>` : ''}
-        </div>
-        <div class="form-group">
-          <label>Decision Made</label>
-          <input type="text" class="dec-decision" placeholder="e.g. Used PostgreSQL instead of MongoDB" value="${prefill.decision || ''}">
-        </div>
-        <div class="form-group">
-          <label>Alternatives Considered</label>
-          <input type="text" class="dec-alternatives" placeholder="e.g. MongoDB, MySQL, SQLite" value="${prefill.alternatives || ''}">
-        </div>
-        <div class="form-group">
-          <label>Reason Chosen</label>
-          <input type="text" class="dec-reason" placeholder="e.g. ACID compliance needed for financial data" value="${prefill.reason || ''}">
-        </div>`;
-      container.appendChild(div);
+    if (localStorage.getItem('studentId')) {
+      document.getElementById('returning-banner').style.display = 'block';
     }
 
-    // Init with one decision
-    addDecision();
-
-    function getDecisions() {
-      return Array.from(document.querySelectorAll('.decision-block')).map(b => ({
-        decision: b.querySelector('.dec-decision').value.trim(),
-        alternatives: b.querySelector('.dec-alternatives').value.trim(),
-        reason: b.querySelector('.dec-reason').value.trim()
-      })).filter(d => d.decision);
-    }
-
-    function goStep(n) {
-      if (n === 2) {
-        // Validate step 1
-        const name = document.getElementById('name').value.trim();
-        const title = document.getElementById('title').value.trim();
-        let valid = true;
-        if (!name) { document.getElementById('err-name').style.display = 'block'; valid = false; } else document.getElementById('err-name').style.display = 'none';
-        if (!title) { document.getElementById('err-title').style.display = 'block'; valid = false; } else document.getElementById('err-title').style.display = 'none';
-        if (!valid) return;
-      }
-
-      if (n === 3) {
-        // Populate review
-        const name = document.getElementById('name').value.trim();
-        const year = document.getElementById('year').value;
-        const branch = document.getElementById('branch').value;
-        const title = document.getElementById('title').value.trim();
-        const description = document.getElementById('description').value.trim();
-        const limitations = document.getElementById('limitations').value.trim();
-        const decisions = getDecisions();
-
-        document.getElementById('review-name').textContent = name;
-        document.getElementById('review-meta').textContent = [year, branch].filter(Boolean).join(' · ') || 'Year/Branch not specified';
-        document.getElementById('review-title').textContent = title;
-        document.getElementById('review-description').textContent = description || '(No description provided)';
-        document.getElementById('review-limitations').textContent = limitations || '(None specified)';
-
-        const decEl = document.getElementById('review-decisions');
-        if (decisions.length === 0) {
-          decEl.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem;">No decisions added.</p>';
-        } else {
-          decEl.innerHTML = decisions.map((d, i) => `
-            <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border-subtle);">
-              <div style="font-weight:600; font-size:0.9375rem; margin-bottom:4px;">${i+1}. ${d.decision}</div>
-              ${d.alternatives ? `<div style="font-size:0.8125rem; color:var(--text-muted);">Alternatives: ${d.alternatives}</div>` : ''}
-              ${d.reason ? `<div style="font-size:0.8125rem; color:var(--text-secondary);">Reason: ${d.reason}</div>` : ''}
-            </div>`).join('');
+    // Wizard Logic
+    document.querySelectorAll('.next-step').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (validateStep(currentStep)) {
+          goToStep(currentStep + 1);
         }
-      }
+      });
+    });
 
-      // Update step UI
-      for (let i = 1; i <= 3; i++) {
-        document.getElementById(`step-${i}`).classList.toggle('active', i === n);
-        const circle = document.getElementById(`sc-${i}`);
-        const label = document.getElementById(`sl-${i}`);
-        if (i < n) { circle.className = 'step-circle done'; circle.textContent = '✓'; }
-        else if (i === n) { circle.className = 'step-circle active'; circle.textContent = i; }
-        else { circle.className = 'step-circle inactive'; circle.textContent = i; }
-        label.className = i === n ? 'step-label active' : 'step-label';
-      }
+    document.querySelectorAll('.prev-step').forEach(btn => {
+      btn.addEventListener('click', () => goToStep(currentStep - 1));
+    });
+
+    function validateStep(step) {
+      const container = document.getElementById(`step-${step}`);
+      const inputs = container.querySelectorAll('[required]');
+      let valid = true;
+      inputs.forEach(input => {
+        if (!input.value.trim()) {
+          input.style.animation = 'shake 0.4s';
+          setTimeout(() => input.style.animation = '', 400);
+          valid = false;
+        }
+      });
+      if (!valid) showToast('Please fill all required fields', 'error');
+      return valid;
     }
 
-    async function submitStudent() {
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true;
-      btn.textContent = 'Submitting...';
-      const msg = document.getElementById('msg');
-      msg.innerHTML = '';
+    function goToStep(step) {
+      const current = document.getElementById(`step-${currentStep}`);
+      const next = document.getElementById(`step-${step}`);
+      
+      current.classList.remove('active');
+      current.classList.add('exiting');
+      
+      setTimeout(() => {
+        current.classList.remove('exiting');
+        next.classList.add('active');
+        currentStep = step;
+        updateIndicators();
+      }, 500);
+    }
 
-      const body = {
-        name: document.getElementById('name').value.trim(),
-        year: document.getElementById('year').value,
-        branch: document.getElementById('branch').value,
-        title: document.getElementById('title').value.trim(),
-        description: document.getElementById('description').value.trim(),
-        architecture: getDecisions(),
-        limitations: document.getElementById('limitations').value.trim()
+    function updateIndicators() {
+      document.querySelectorAll('.step-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i + 1 === currentStep);
+        dot.classList.toggle('completed', i + 1 < currentStep);
+      });
+    }
+
+    // Char Counter
+    const descText = form.querySelector('[name="description"]');
+    const descCount = document.getElementById('desc-count');
+    descText.addEventListener('input', () => {
+      descCount.textContent = descText.value.length;
+    });
+
+    // Architecture Rows
+    document.getElementById('add-arch-row').addEventListener('click', () => {
+      const row = document.createElement('div');
+      row.className = 'arch-row';
+      row.innerHTML = `
+        <div class="form-group" style="margin-bottom:0;">
+          <input type="text" name="decision" class="form-input" placeholder=" " required>
+          <label class="form-label-floating">Decision</label>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input type="text" name="alternatives" class="form-input" placeholder=" " required>
+          <label class="form-label-floating">Alternatives</label>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <input type="text" name="reason" class="form-input" placeholder=" " required>
+          <label class="form-label-floating">Reasoning</label>
+        </div>
+        <button type="button" class="btn btn-ghost remove-row">×</button>
+      `;
+      document.getElementById('arch-rows-container').appendChild(row);
+    });
+
+    document.getElementById('arch-rows-container').addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-row')) {
+        const row = e.target.closest('.arch-row');
+        row.style.animation = 'slideOutLeft 0.3s forwards';
+        setTimeout(() => row.remove(), 300);
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      btn.classList.add('btn--loading');
+      
+      const formData = new FormData(form);
+      const architecture = Array.from(document.querySelectorAll('.arch-row')).map(r => ({
+        decision: r.querySelector('[name="decision"]').value.trim(),
+        alternatives: r.querySelector('[name="alternatives"]').value.trim(),
+        reason: r.querySelector('[name="reason"]').value.trim()
+      })).filter(a => a.decision);
+
+      const payload = {
+        name: formData.get('name'),
+        year: formData.get('year'),
+        branch: formData.get('branch'),
+        title: formData.get('title'),
+        description: formData.get('description'),
+        architecture,
+        limitations: formData.get('limitations').split(',').map(s => s.trim()).filter(Boolean)
       };
 
       try {
         const res = await fetch('/api/students', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to register');
-        createdStudentId = data.id;
-        document.getElementById('success-name').textContent = `${data.name} — ${data.title}`;
-        document.getElementById('go-questions-btn').href = `questions.html?id=${data.id}`;
-        document.getElementById('success-overlay').classList.add('show');
-      } catch (e) {
-        msg.innerHTML = `<div class="msg-error">⚠ ${e.message}</div>`;
-        btn.disabled = false;
-        btn.textContent = 'Submit Student ✓';
+        
+        if (!res.ok) throw new Error('Failed to save student data');
+        const data = await res.json(); 
+        
+        localStorage.setItem('studentId', data.id); 
+        localStorage.setItem('studentName', data.name || ''); 
+        
+        document.getElementById('success-overlay').style.display = 'flex'; 
+        triggerConfetti();
+        
+        setTimeout(() => { 
+          window.location.href = '/dashboard.html'; 
+        }, 1500); 
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.classList.remove('btn--loading');
       }
-    }
-
-    function resetForm() {
-      document.getElementById('success-overlay').classList.remove('show');
-      document.getElementById('name').value = '';
-      document.getElementById('year').value = '';
-      document.getElementById('branch').value = '';
-      document.getElementById('title').value = '';
-      document.getElementById('description').value = '';
-      document.getElementById('limitations').value = '';
-      document.getElementById('decisions-container').innerHTML = '';
-      decisionCount = 0;
-      addDecision();
-      document.getElementById('submit-btn').disabled = false;
-      document.getElementById('submit-btn').textContent = 'Submit Student ✓';
-      goStep(1);
-    }
+    });
   </script>
 </body>
 </html>

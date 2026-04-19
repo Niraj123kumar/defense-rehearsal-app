@@ -1,19 +1,17 @@
 {
   "name": "defense-rehearsal-app",
-  "version": "2.0.0",
-  "description": "AI-powered project defense rehearsal system for engineering students",
+  "version": "3.0.0",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
-  "keywords": ["defense", "rehearsal", "engineering", "ai", "coaching"],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
+    "groq-sdk": "^1.1.2",
     "socket.io": "^4.8.3",
     "uuid": "^13.0.0"
   }

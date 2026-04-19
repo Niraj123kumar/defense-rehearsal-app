@@ -3,247 +3,207 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Progress — PDRS</title>
+  <title>Student Profile - PDRS</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .profile-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; }
+    .metric-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .trajectory-chart { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1.5rem; height: 300px; position: relative; }
+    .chart-svg { width: 100%; height: 100%; }
+    .chart-path { fill: none; stroke: var(--accent-indigo); stroke-width: 3; stroke-linecap: round; }
+    .chart-dot { fill: var(--bg-primary); stroke: var(--accent-indigo); stroke-width: 2; cursor: pointer; transition: transform 0.2s; }
+    .chart-dot:hover { transform: scale(1.5); }
+    .delta-up { color: var(--accent-emerald); }
+    .delta-down { color: var(--accent-red); }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="profile"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper">
+  <main class="container">
+    <div id="profile-content" class="stagger-children">
+      <header style="margin-bottom: 3rem;">
+        <h1 id="profile-name">Student Profile</h1>
+        <p id="profile-title" style="color: var(--text-muted);"></p>
+      </header>
 
-      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-        <div>
-          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">PROGRESS PROFILE</p>
-          <h1 id="page-title">Student Profile</h1>
-          <p id="page-subtitle" style="color:var(--text-muted);">Loading...</p>
+      <div class="metric-cards">
+        <div class="card">
+          <div class="form-label">Total Sessions</div>
+          <div class="counter" id="total-sessions" style="font-size: 2rem; font-weight: 700; color: var(--accent-indigo);" data-target="0">0</div>
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn btn-secondary btn-sm no-print" onclick="exportProfile()">📄 Export PDF</button>
-          <a id="coaching-link" href="#" class="btn btn-primary btn-sm no-print">Get Coaching →</a>
+        <div class="card">
+          <div class="form-label">Avg. Score</div>
+          <div class="counter" id="avg-score" style="font-size: 2rem; font-weight: 700; color: var(--accent-emerald);" data-target="0" data-decimals="2">0.00</div>
+        </div>
+        <div class="card">
+          <div class="form-label">Questions Answered</div>
+          <div class="counter" id="total-qs" style="font-size: 2rem; font-weight: 700; color: var(--accent-amber);" data-target="0">0</div>
         </div>
       </div>
 
-      <div id="msg"></div>
+      <div class="profile-grid">
+        <div class="card">
+          <h3 style="margin-bottom: 1.5rem;">Dimension Analysis</h3>
+          <div id="dimension-bars" class="stagger-children">
+            <!-- Bars populated by JS -->
+          </div>
+        </div>
 
-      <!-- No student -->
-      <div id="no-student" class="empty-state" style="display:none;">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="40" cy="32" r="14" stroke-opacity="0.5"/><path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/></svg>
-        <h3>No student selected</h3>
-        <a href="dashboard.html" class="btn btn-primary btn-sm">View Dashboard</a>
+        <div class="card">
+          <h3 style="margin-bottom: 1.5rem;">Performance Trajectory</h3>
+          <div class="trajectory-chart">
+            <svg class="chart-svg" viewBox="0 0 800 300" id="trajectory-svg">
+              <path id="chart-line" class="chart-path"></path>
+            </svg>
+            <div id="chart-empty" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--text-faint); display:none;">No session data yet</div>
+          </div>
+        </div>
       </div>
 
-      <!-- Skeleton -->
-      <div id="skeleton">
-        <div class="metric-grid" style="margin-bottom:var(--sp-3);">
-          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
-          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
-          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
-          <div class="skeleton" style="height:100px; border-radius:var(--radius-lg);"></div>
-        </div>
-        <div class="skeleton" style="height:200px; border-radius:var(--radius-lg);"></div>
-      </div>
-
-      <!-- Profile content -->
-      <div id="profile-content" style="display:none;">
-
-        <!-- Key metrics -->
-        <div class="metric-grid" style="margin-bottom:var(--sp-4);">
-          <div class="metric-card">
-            <div class="metric-label">Sessions</div>
-            <div class="metric-value" id="stat-sessions">—</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">Most Improved</div>
-            <div class="metric-value" id="stat-improved" style="font-size:1rem; line-height:1.3; padding-top:4px;">—</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">Weakest Area</div>
-            <div class="metric-value" id="stat-weakest" style="font-size:1rem; line-height:1.3; padding-top:4px;">—</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-label">Overall Delta</div>
-            <div class="metric-value" id="stat-delta">—</div>
-          </div>
-        </div>
-
-        <!-- Trajectory chart -->
-        <div class="card card-static" style="margin-bottom:var(--sp-4);">
-          <h2 style="font-size:1.125rem; margin-bottom:4px;">Score Trajectory</h2>
-          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Average score per session across all 4 dimensions.</p>
-          <div style="position:relative; height:200px;">
-            <canvas id="trajectory-chart"></canvas>
-          </div>
-        </div>
-
-        <!-- Dimension averages -->
-        <div class="card card-static" style="margin-bottom:var(--sp-4);">
-          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Dimension Breakdown</h2>
-          <div id="dim-bars"></div>
-        </div>
-
-        <!-- Improvement table -->
-        <div class="card card-static" style="margin-bottom:var(--sp-4);">
-          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Improvement vs. Baseline</h2>
+      <div class="card" style="margin-top: 2rem;">
+        <h3 style="margin-bottom: 1.5rem;">Session History</h3>
+        <div class="data-table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Dimension</th>
-                <th>Current Average</th>
-                <th>Change from First Session</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Questions</th>
+                <th>Avg. Score</th>
+                <th>Delta</th>
               </tr>
             </thead>
-            <tbody id="improvement-tbody"></tbody>
+            <tbody id="session-history">
+              <!-- Populated by JS -->
+            </tbody>
           </table>
         </div>
-
-        <!-- Actions -->
-        <div class="card card-static" style="text-align:center; padding:var(--sp-4);">
-          <h3 style="margin-bottom:8px;">Keep improving</h3>
-          <p style="color:var(--text-muted); margin-bottom:var(--sp-3);">Each session builds your baseline. Run coaching drills between sessions for faster improvement.</p>
-          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <a id="action-defense" href="#" class="btn btn-primary">Run Defense Session →</a>
-            <a id="action-coaching" href="#" class="btn btn-secondary">Get Coaching</a>
-          </div>
-        </div>
-
       </div>
-
     </div>
   </main>
 
-  <style>
-    .score-bar-row { margin-bottom:16px; }
-    .score-bar-label { display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.875rem; }
-    .score-bar-track { height:10px; background:var(--bg-elevated); border-radius:5px; overflow:hidden; }
-    .score-bar-fill { height:100%; border-radius:5px; }
-  </style>
-
+  <script src="nav.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
-    const studentId = params.get('id');
-    const dimColors = { 'Clarity': '#60A5FA', 'Logical Reasoning': '#F59E0B', 'Technical Depth': '#EF4444', 'Confidence': '#10B981' };
+    const studentId = params.get('studentId') || localStorage.getItem('studentId');
 
-    // If no id in URL, try to show selector
-    async function init() {
-      if (!studentId) {
-        // Show student picker
-        try {
-          const res = await fetch('/api/students');
-          const students = await res.json();
-          if (!students.length) { document.getElementById('no-student').style.display = 'flex'; document.getElementById('skeleton').style.display = 'none'; return; }
-          // Redirect to first student with sessions, or just first
-          const withSessions = students.find(s => s.sessionCount > 0) || students[0];
-          window.location.href = `profile.html?id=${withSessions.id}`;
-        } catch { document.getElementById('no-student').style.display = 'flex'; document.getElementById('skeleton').style.display = 'none'; }
+    if (!studentId) window.location.href = 'onboarding.html';
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(`/api/profile/${studentId}`);
+        if (!res.ok) throw new Error('Profile not found');
+        const data = await res.json();
+        renderProfile(data);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function renderProfile({ student, sessions }) {
+      document.getElementById('profile-name').textContent = student.name;
+      document.getElementById('profile-title').textContent = `${student.title} | ${student.branch} ${student.year}`;
+
+      const totalQs = sessions.reduce((acc, s) => acc + s.responses.length, 0);
+      const totalAvg = sessions.length > 0 ? sessions.reduce((acc, s) => acc + s.average, 0) / sessions.length : 0;
+
+      document.getElementById('total-sessions').dataset.target = sessions.length;
+      document.getElementById('avg-score').dataset.target = totalAvg;
+      document.getElementById('total-qs').dataset.target = totalQs;
+
+      // Dimension Bars
+      const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
+      const dimAverages = dims.reduce((acc, dim) => {
+        const total = sessions.reduce((sAcc, s) => {
+          const sAvg = s.responses.reduce((rAcc, r) => rAcc + r.scores[dim], 0) / s.responses.length;
+          return sAcc + sAvg;
+        }, 0);
+        acc[dim] = sessions.length > 0 ? total / sessions.length : 0;
+        return acc;
+      }, {});
+
+      const barsContainer = document.getElementById('dimension-bars');
+      barsContainer.innerHTML = dims.map((dim, i) => `
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span class="form-label" style="text-transform: capitalize;">${dim}</span>
+            <span style="font-weight: 700; color: var(--accent-indigo);">${(dimAverages[dim] || 0).toFixed(2)}</span>
+          </div>
+          <div class="dim-bar-container">
+            <div class="dim-bar-fill" style="--target-width: ${(dimAverages[dim] || 0) * 20}%; --delay: ${i * 0.1}s"></div>
+          </div>
+        </div>
+      `).join('');
+
+      // Trajectory Chart
+      renderChart(sessions);
+
+      // Session History
+      const historyTable = document.getElementById('session-history');
+      if (sessions.length === 0) {
+        historyTable.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem;">No sessions yet. Start your first rehearsal!</td></tr>';
+      } else {
+        historyTable.innerHTML = sessions.map((s, i) => {
+          const delta = i === 0 ? 0 : s.average - sessions[i - 1].average;
+          const deltaClass = delta > 0 ? 'delta-up' : (delta < 0 ? 'delta-down' : '');
+          const deltaIcon = delta > 0 ? '↑' : (delta < 0 ? '↓' : '-');
+          
+          return `
+            <tr>
+              <td>${new Date(s.date).toLocaleDateString()}</td>
+              <td style="text-transform: capitalize;">${s.type}</td>
+              <td>${s.responses.length}</td>
+              <td style="font-weight: 700;">${(s.average || 0).toFixed(2)}</td>
+              <td class="${deltaClass}">${deltaIcon} ${(Math.abs(delta) || 0).toFixed(2)}</td>
+            </tr>
+          `;
+        }).reverse().join('');
+      }
+
+      // Trigger counters
+      document.querySelectorAll('.counter').forEach(c => {
+        animateCounter(c, 0, parseFloat(c.dataset.target), 1200, c.dataset.decimals || 0);
+      });
+    }
+
+    function renderChart(sessions) {
+      const svg = document.getElementById('trajectory-svg');
+      const line = document.getElementById('chart-line');
+      const emptyMsg = document.getElementById('chart-empty');
+
+      if (sessions.length < 2) {
+        emptyMsg.style.display = 'flex';
         return;
       }
 
-      try {
-        const res = await fetch(`/api/profile/${studentId}`);
-        if (!res.ok) {
-          const data = await res.json();
-          document.getElementById('skeleton').style.display = 'none';
-          if (res.status === 404 && data.error.includes('session')) {
-            document.getElementById('msg').innerHTML = `<div class="msg-error" style="margin-bottom:16px;">No sessions found. <a href="defense.html?id=${studentId}" style="color:var(--accent-indigo);">Run a defense session first →</a></div>`;
-          } else {
-            document.getElementById('no-student').style.display = 'flex';
-          }
-          return;
-        }
-        const data = await res.json();
-        renderProfile(data);
-      } catch (e) {
-        document.getElementById('skeleton').style.display = 'none';
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load profile: ${e.message}</div>`;
-      }
+      const points = sessions.map((s, i) => ({
+        x: (i / (sessions.length - 1)) * 750 + 25,
+        y: 275 - (s.average / 5) * 250
+      }));
+
+      const d = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(' ');
+      line.setAttribute('d', d);
+      
+      const length = line.getTotalLength();
+      line.style.setProperty('--path-length', length);
+      line.style.strokeDasharray = length;
+      line.style.strokeDashoffset = length;
+      line.style.animation = 'drawPath 2s ease-out forwards';
+
+      points.forEach(p => {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', p.x);
+        circle.setAttribute('cy', p.y);
+        circle.setAttribute('r', '6');
+        circle.setAttribute('class', 'chart-dot');
+        circle.style.animation = 'popIn 0.5s var(--ease-bounce) forwards';
+        svg.appendChild(circle);
+      });
     }
 
-    function renderProfile(data) {
-      document.getElementById('skeleton').style.display = 'none';
-      document.getElementById('profile-content').style.display = 'block';
-
-      document.getElementById('page-title').textContent = data.studentName;
-      document.getElementById('page-subtitle').textContent = data.projectTitle;
-      document.getElementById('coaching-link').href = `coaching.html?id=${studentId}`;
-      document.getElementById('action-defense').href = `defense.html?id=${studentId}`;
-      document.getElementById('action-coaching').href = `coaching.html?id=${studentId}`;
-
-      document.getElementById('stat-sessions').textContent = data.totalSessions;
-      document.getElementById('stat-improved').textContent = data.mostImproved || '—';
-      document.getElementById('stat-weakest').textContent = data.weakest || '—';
-
-      // Overall delta
-      const deltas = Object.values(data.dimImprovements || {});
-      const overallDelta = deltas.length ? deltas.reduce((a, b) => a + b, 0) / deltas.length : 0;
-      const deltaEl = document.getElementById('stat-delta');
-      deltaEl.textContent = (overallDelta >= 0 ? '+' : '') + overallDelta.toFixed(2);
-      deltaEl.style.color = overallDelta > 0 ? 'var(--accent-emerald)' : overallDelta < 0 ? 'var(--accent-red)' : 'var(--text-primary)';
-
-      // Trajectory chart
-      if (data.trajectory && data.trajectory.length > 1) {
-        const ctx = document.getElementById('trajectory-chart').getContext('2d');
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: data.trajectory.map(t => `Session ${t.session}`),
-            datasets: [{
-              label: 'Avg Score',
-              data: data.trajectory.map(t => t.avg),
-              borderColor: '#6366F1',
-              backgroundColor: 'rgba(99,102,241,0.1)',
-              tension: 0.4,
-              fill: true,
-              pointBackgroundColor: '#6366F1',
-              pointRadius: 5
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15,15,25,0.9)', titleColor: '#F1F5F9', bodyColor: '#94A3B8' } },
-            scales: {
-              y: { min: 0, max: 5, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748B', stepSize: 1, font: { family: 'JetBrains Mono', size: 11 } } },
-              x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { family: 'Space Grotesk', size: 12 } } }
-            }
-          }
-        });
-      } else {
-        document.getElementById('trajectory-chart').parentElement.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem; text-align:center; padding:40px 0;">Need 2+ sessions to show trajectory.</p>';
-      }
-
-      // Dimension bars
-      const barsEl = document.getElementById('dim-bars');
-      barsEl.innerHTML = Object.entries(data.dimensionAverages || {}).map(([dim, avg]) => `
-        <div class="score-bar-row">
-          <div class="score-bar-label">
-            <span>${dim}</span>
-            <span style="font-family:var(--font-mono); font-weight:700;">${avg}/5</span>
-          </div>
-          <div class="score-bar-track">
-            <div class="score-bar-fill" style="width:${(avg/5)*100}%; background:${dimColors[dim] || '#6366F1'};"></div>
-          </div>
-        </div>`).join('');
-
-      // Improvement table
-      const tbody = document.getElementById('improvement-tbody');
-      tbody.innerHTML = Object.entries(data.dimImprovements || {}).map(([dim, delta]) => {
-        const avg = data.dimensionAverages?.[dim] || 0;
-        const cls = delta > 0 ? 'delta-positive' : delta < 0 ? 'delta-negative' : 'delta-neutral';
-        return `<tr>
-          <td>${dim}</td>
-          <td><span style="font-family:var(--font-mono);">${avg}/5</span></td>
-          <td><span class="${cls}" style="font-family:var(--font-mono);">${delta >= 0 ? '+' : ''}${delta}</span></td>
-        </tr>`;
-      }).join('');
-    }
-
-    async function exportProfile() {
-      window.print();
-    }
-
-    init();
+    loadProfile();
   </script>
 </body>
 </html>

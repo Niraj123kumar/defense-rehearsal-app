@@ -3,246 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Questions — PDRS</title>
+  <title>Tiered Questions - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    details { background: var(--bg-card); backdrop-filter: blur(10px); border: 1px solid var(--border-default); border-radius: var(--radius-lg); margin-bottom: 1.5rem; overflow: hidden; transition: var(--transition-base); }
+    details[open] { border-color: var(--accent-indigo); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); }
+    summary { padding: 1.5rem; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: space-between; list-style: none; outline: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: '↓'; font-family: var(--font-mono); color: var(--text-muted); transition: transform 0.4s var(--ease-bounce); }
+    details[open] summary::after { transform: rotate(180deg); color: var(--accent-indigo); }
+    .tier-content { padding: 0 1.5rem 1.5rem; border-top: 1px solid var(--border-subtle); animation: fadeInUp 0.4s var(--ease-quick); }
+    .question-card { background: rgba(22, 27, 34, 0.5); padding: 1.25rem; border-radius: var(--radius-md); margin-top: 1rem; border-left: 4px solid var(--accent-indigo); transition: var(--transition-fast); }
+    .question-card:hover { transform: translateX(5px); background: rgba(22, 27, 34, 0.8); }
+    .progress-tracker { background: var(--bg-secondary); padding: 1rem 2rem; border-radius: var(--radius-pill); display: inline-flex; align-items: center; gap: 1rem; margin-bottom: 3rem; border: 1px solid var(--border-default); }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="questions"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper">
+  <main class="container">
+    <div id="questions-guard" style="display:none; text-align: center; padding: 4rem 0;">
+      <h2 class="gradient-text">No Project Found</h2>
+      <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Please register your project to generate tiered questions.</p>
+      <a href="onboarding.html" class="btn btn-primary btn-lg">Start Onboarding</a>
+    </div>
 
-      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+    <div id="questions-content" class="stagger-children">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
         <div>
-          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">STEP 2 OF 4</p>
-          <h1 id="page-title">AI Questions</h1>
-          <p id="page-subtitle" style="color:var(--text-muted);">Loading...</p>
+          <h1 class="gradient-text" style="font-size: 3rem; margin-bottom: 0.5rem;">Defense Library</h1>
+          <p style="color: var(--text-muted);">Master these 10 tiered questions to excel in your final project defense.</p>
         </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <a id="defense-btn" href="#" class="btn btn-primary" style="display:none;">Start Defense Session →</a>
-          <button id="regenerate-btn" class="btn btn-secondary" style="display:none;" onclick="generateQuestions()">↻ Regenerate</button>
+        <div class="progress-tracker">
+          <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">TIERS UNLOCKED:</span>
+          <div style="display: flex; gap: 0.5rem;">
+            <span class="tier-badge tier-1">1</span>
+            <span class="tier-badge tier-2">2</span>
+            <span class="tier-badge tier-3">3</span>
+          </div>
         </div>
       </div>
 
-      <div id="msg"></div>
-
-      <!-- Student not found -->
-      <div id="no-student" style="display:none;" class="empty-state">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="40" cy="32" r="14" stroke-opacity="0.5"/><path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/></svg>
-        <h3>No student selected</h3>
-        <p>Select a student from the dashboard or register a new one.</p>
-        <div style="display:flex; gap:12px;">
-          <a href="dashboard.html" class="btn btn-primary btn-sm">View Dashboard</a>
-          <a href="onboarding.html" class="btn btn-secondary btn-sm">Register Student</a>
-        </div>
+      <div id="skeleton-accordion">
+        <div class="card glass skeleton" style="height: 80px; margin-bottom: 1.5rem;"></div>
+        <div class="card glass skeleton" style="height: 80px; margin-bottom: 1.5rem;"></div>
+        <div class="card glass skeleton" style="height: 80px;"></div>
       </div>
 
-      <!-- Generate panel -->
-      <div id="generate-panel" class="card card-static" style="display:none; margin-bottom:var(--sp-3);">
-        <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Generate Questions</h2>
+      <div id="accordion-container" style="display:none;">
+        <details open class="animate-on-scroll">
+          <summary>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <span class="tier-badge tier-1">Tier 1</span>
+              <span style="font-size: 1.1rem;">Surface Concepts & Fundamentals</span>
+            </div>
+          </summary>
+          <div id="tier1-list" class="tier-content stagger-children"></div>
+        </details>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:var(--sp-3);">
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Focus Tier</label>
-            <select id="focus-tier">
-              <option value="">All tiers (recommended)</option>
-              <option value="tier1">Tier 1 — Surface Clarity only</option>
-              <option value="tier2">Tier 2 — Design Tradeoffs only</option>
-              <option value="tier3">Tier 3 — Failure Modes only</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label>Session Mode</label>
-            <select id="session-mode">
-              <option value="full">Full session (all 10 questions)</option>
-              <option value="quick">Quick drill (5 questions)</option>
-              <option value="custom">Custom focus</option>
-            </select>
-          </div>
-        </div>
+        <details class="animate-on-scroll">
+          <summary>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <span class="tier-badge tier-2">Tier 2</span>
+              <span style="font-size: 1.1rem;">Tradeoffs & Architectural Decisions</span>
+            </div>
+          </summary>
+          <div id="tier2-list" class="tier-content stagger-children"></div>
+        </details>
 
-        <button class="btn btn-primary" id="gen-btn" onclick="generateQuestions()">
-          🤖 Generate Questions with AI
-        </button>
-      </div>
+        <details class="animate-on-scroll">
+          <summary>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <span class="tier-badge tier-3" style="animation: pulseGlow 2s infinite;">Tier 3</span>
+              <span style="font-size: 1.1rem;">Failure Modes & System Resilience</span>
+            </div>
+          </summary>
+          <div id="tier3-list" class="tier-content stagger-children"></div>
+        </details>
 
-      <!-- Loading -->
-      <div id="loading" style="display:none;">
-        <div class="card card-static" style="text-align:center; padding:var(--sp-5);">
-          <div style="font-size:2rem; margin-bottom:16px; animation:spin 2s linear infinite; display:inline-block;">⚙</div>
-          <h3 style="margin-bottom:8px;">AI is generating questions...</h3>
-          <p id="loading-msg" style="color:var(--text-muted); font-size:0.875rem;">Analyzing your architecture decisions</p>
+        <div style="text-align: center; margin-top: 4rem; padding-bottom: 4rem;">
+          <a href="defense.html" class="btn btn-primary btn-lg glass" style="padding: 1rem 3rem;">Launch Solo Practice Session →</a>
         </div>
       </div>
-
-      <!-- Questions display -->
-      <div id="questions-container" style="display:none;">
-
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--sp-3); flex-wrap:wrap; gap:12px;">
-          <div style="display:flex; gap:8px; align-items:center;">
-            <span class="badge badge-emerald">✓ Questions Ready</span>
-            <span id="gen-time" style="font-size:0.8rem; color:var(--text-muted);"></span>
-          </div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-secondary btn-sm" onclick="printQuestions()">📄 Export PDF</button>
-            <button class="btn btn-secondary btn-sm" onclick="generateQuestions()">↻ Regenerate</button>
-          </div>
-        </div>
-
-        <!-- Tier 1 -->
-        <div class="tier-section" id="tier1-section">
-          <div class="tier-header tier-1">
-            <h3>Tier 1 — Surface Clarity</h3>
-            <span class="badge badge-blue" id="t1-count">2 questions</span>
-          </div>
-          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Basic understanding and ability to explain the project clearly.</p>
-          <div id="tier1-questions"></div>
-        </div>
-
-        <!-- Tier 2 -->
-        <div class="tier-section" id="tier2-section">
-          <div class="tier-header tier-2">
-            <h3>Tier 2 — Design Tradeoffs</h3>
-            <span class="badge badge-indigo" id="t2-count">5 questions</span>
-          </div>
-          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Probing the reasoning behind architectural decisions and tradeoffs.</p>
-          <div id="tier2-questions"></div>
-        </div>
-
-        <!-- Tier 3 -->
-        <div class="tier-section" id="tier3-section">
-          <div class="tier-header tier-3">
-            <h3>Tier 3 — Failure Modes</h3>
-            <span class="badge badge-orange" id="t3-count">3 questions</span>
-          </div>
-          <p style="font-size:0.8125rem; color:var(--text-muted); margin-bottom:var(--sp-2);">Testing awareness of limitations, failure scenarios, and edge cases.</p>
-          <div id="tier3-questions"></div>
-        </div>
-
-        <!-- CTA -->
-        <div style="text-align:center; padding:var(--sp-4) 0; border-top:1px solid var(--border-subtle); margin-top:var(--sp-3);">
-          <h3 style="margin-bottom:8px;">Ready to practice?</h3>
-          <p style="color:var(--text-muted); margin-bottom:var(--sp-3); font-size:0.9375rem;">Answer these questions one by one and get scored by AI on 4 dimensions.</p>
-          <a id="start-defense-btn" href="#" class="btn btn-primary btn-lg">Start Defense Session →</a>
-        </div>
-
-      </div>
-
     </div>
   </main>
 
-  <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .q-num { font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-right:8px; flex-shrink:0; }
-  </style>
-
+  <script src="nav.js"></script>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const studentId = params.get('id');
-    let currentStudent = null;
+    const studentId = localStorage.getItem('studentId');
+    if (!studentId) {
+      document.getElementById('questions-guard').style.display = 'block';
+      document.getElementById('questions-content').style.display = 'none';
+    } else {
+      loadQuestions();
+    }
 
-    async function init() {
-      if (!studentId) { document.getElementById('no-student').style.display = 'flex'; return; }
-
+    async function loadQuestions() {
       try {
-        const res = await fetch(`/api/students/${studentId}`);
-        if (!res.ok) throw new Error('Student not found');
-        currentStudent = await res.json();
-
-        document.getElementById('page-title').textContent = `Questions — ${currentStudent.name}`;
-        document.getElementById('page-subtitle').textContent = currentStudent.title;
-        document.getElementById('defense-btn').href = `defense.html?id=${studentId}`;
-        document.getElementById('start-defense-btn').href = `defense.html?id=${studentId}`;
-
-        // Try to load existing questions
-        const qRes = await fetch(`/api/questions/${studentId}`);
-        if (qRes.ok) {
-          const qData = await qRes.json();
-          displayQuestions(qData);
-          document.getElementById('regenerate-btn').style.display = 'inline-flex';
-          document.getElementById('defense-btn').style.display = 'inline-flex';
-        } else {
-          document.getElementById('generate-panel').style.display = 'block';
+        const res = await fetch(`/api/questions/${studentId}`);
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Questions not found');
         }
-      } catch (e) {
-        document.getElementById('no-student').style.display = 'flex';
+        const questions = await res.json();
+        
+        renderTier('tier1', questions.tier1);
+        renderTier('tier2', questions.tier2);
+        renderTier('tier3', questions.tier3);
+        
+        document.getElementById('skeleton-accordion').style.display = 'none';
+        document.getElementById('accordion-container').style.display = 'block';
+        
+        // Trigger animations for visible content
+        setTimeout(() => initScrollAnimations(), 100);
+      } catch (err) {
+        showToast(err.message, 'error');
+        if (err.message.includes('Generate questions first')) {
+          setTimeout(() => window.location.href = 'dashboard.html', 2000);
+        }
       }
     }
 
-    const loadingMsgs = [
-      'Analyzing your architecture decisions...',
-      'Crafting tier 1 clarity questions...',
-      'Probing design tradeoffs...',
-      'Identifying failure scenarios...',
-      'Almost done...'
-    ];
-
-    async function generateQuestions() {
-      if (!currentStudent) return;
-      document.getElementById('generate-panel').style.display = 'none';
-      document.getElementById('questions-container').style.display = 'none';
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('msg').innerHTML = '';
-
-      // Cycle loading messages
-      let mi = 0;
-      const msgEl = document.getElementById('loading-msg');
-      const msgInterval = setInterval(() => { msgEl.textContent = loadingMsgs[mi++ % loadingMsgs.length]; }, 2500);
-
-      try {
-        const res = await fetch(`/api/generate-questions/${studentId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ focusTier: document.getElementById('focus-tier')?.value || '' })
-        });
-        const data = await res.json();
-        clearInterval(msgInterval);
-        if (!res.ok) throw new Error(data.error || 'Generation failed');
-        document.getElementById('loading').style.display = 'none';
-        displayQuestions({ questions: data.questions, generatedAt: new Date().toISOString() });
-        document.getElementById('regenerate-btn').style.display = 'inline-flex';
-        document.getElementById('defense-btn').style.display = 'inline-flex';
-      } catch (e) {
-        clearInterval(msgInterval);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('generate-panel').style.display = 'block';
-        document.getElementById('msg').innerHTML = `<div class="msg-error">⚠ ${e.message}. Check that your AI provider (Ollama or Claude API) is running.</div>`;
-      }
+    function renderTier(tierId, qs) {
+      const container = document.getElementById(`${tierId}-list`);
+      container.innerHTML = qs.map((q, i) => `
+        <div class="question-card card-3d visible" style="animation-delay: ${i * 0.1}s">
+          <div style="font-size: 0.75rem; color: var(--accent-indigo); font-weight: 800; margin-bottom: 0.5rem; font-family: var(--font-mono); letter-spacing: 1px;">QUEST_ID: ${tierId.toUpperCase()}_0${i+1}</div>
+          <p style="font-size: 1.1rem; font-weight: 600; line-height: 1.5;">${q}</p>
+        </div>
+      `).join('');
     }
-
-    function displayQuestions(qData) {
-      const { questions, generatedAt } = qData;
-      document.getElementById('questions-container').style.display = 'block';
-
-      if (generatedAt) {
-        const d = new Date(generatedAt);
-        document.getElementById('gen-time').textContent = `Generated ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-      }
-
-      renderTier('tier1-questions', questions.tier1 || [], 't1-count', 'tier-1');
-      renderTier('tier2-questions', questions.tier2 || [], 't2-count', 'tier-2');
-      renderTier('tier3-questions', questions.tier3 || [], 't3-count', 'tier-3');
-    }
-
-    function renderTier(containerId, questions, countId, tierClass) {
-      const el = document.getElementById(containerId);
-      document.getElementById(countId).textContent = `${questions.length} question${questions.length !== 1 ? 's' : ''}`;
-      if (!questions.length) {
-        el.innerHTML = '<p style="color:var(--text-muted); font-size:0.875rem; padding:12px;">No questions in this tier.</p>';
-        return;
-      }
-      el.innerHTML = questions.map((q, i) => `
-        <div class="question-card ${tierClass}" style="display:flex; align-items:flex-start; gap:10px;">
-          <span class="q-num">Q${i+1}</span>
-          <span class="q-text">${q}</span>
-        </div>`).join('');
-    }
-
-    function printQuestions() {
-      window.print();
-    }
-
-    init();
   </script>
 </body>
 </html>

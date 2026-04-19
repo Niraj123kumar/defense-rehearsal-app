@@ -3,140 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Live Session — PDRS</title>
+  <title>Create Live Session - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    .room-code-display { font-family: var(--font-mono); font-size: 4rem; letter-spacing: 0.5rem; color: var(--accent-indigo); margin: 2rem 0; min-height: 5rem; }
+    .invite-box { background: var(--bg-secondary); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-default); margin-bottom: 1.5rem; position: relative; }
+    .invite-box code { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent-emerald); word-break: break-all; }
+    .copy-btn { position: absolute; top: 1rem; right: 1rem; }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="session-create"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper" style="max-width:680px;">
-
-      <div class="page-header">
-        <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">LIVE PANEL SESSION</p>
-        <h1>🎙 Create Session</h1>
-        <p style="color:var(--text-muted);">Host a real-time defense with faculty panelists who score and interrupt live.</p>
+  <main class="container">
+    <div id="session-create-content" class="stagger-children" style="max-width: 600px; margin: 0 auto;">
+      <div id="setup-step">
+        <h1 style="margin-bottom: 1rem;">Host Live Defense</h1>
+        <div id="student-summary" class="card" style="margin-bottom: 2rem;">
+          <div class="skeleton" style="height: 20px; width: 150px; margin-bottom: 0.5rem;"></div>
+          <div class="skeleton" style="height: 30px; width: 300px;"></div>
+        </div>
+        <button id="create-session-btn" class="btn btn-primary btn-lg" style="width: 100%;">Initialize Live Session Room</button>
       </div>
 
-      <div id="msg"></div>
+      <div id="invite-step" style="display:none;">
+        <h1 style="margin-bottom: 0.5rem;">Room Created!</h1>
+        <p style="color: var(--text-muted);">Share these links with the student and your faculty panel.</p>
+        
+        <div id="room-code-el" class="room-code-display"></div>
 
-      <!-- Step 1: Select student -->
-      <div id="step-select" class="card card-static" style="margin-bottom:var(--sp-3);">
-        <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">1. Select Student</h2>
-        <div class="form-group">
-          <select id="student-select">
-            <option value="">Loading students...</option>
-          </select>
+        <div class="invite-box">
+          <div class="form-label">Student Invite Link</div>
+          <code id="student-url"></code>
+          <button class="btn btn-ghost btn-sm copy-btn" onclick="copyInvite('student-url', this)">Copy</button>
         </div>
-        <div id="student-info" style="display:none; background:var(--bg-elevated); border-radius:var(--radius-md); padding:14px; margin-top:8px;">
-          <div style="font-weight:600;" id="sel-name"></div>
-          <div style="font-size:0.875rem; color:var(--text-muted);" id="sel-title"></div>
-          <div id="sel-warning" style="display:none; margin-top:8px; font-size:0.8125rem; color:var(--accent-orange);">⚠ No questions generated yet. <a id="sel-gen-link" href="#" style="color:var(--accent-indigo);">Generate questions first →</a></div>
-        </div>
-      </div>
 
-      <!-- Step 2: Session info -->
-      <div id="step-info" class="card card-static" style="margin-bottom:var(--sp-3);">
-        <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">2. How it works</h2>
-        <div style="display:grid; gap:12px;">
-          <div style="display:flex; gap:12px; align-items:flex-start;">
-            <div style="width:32px; height:32px; background:var(--accent-indigo-dim); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent-indigo);">1</div>
-            <div><strong>Create</strong> — generates a room code for the session.</div>
-          </div>
-          <div style="display:flex; gap:12px; align-items:flex-start;">
-            <div style="width:32px; height:32px; background:var(--accent-indigo-dim); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent-indigo);">2</div>
-            <div><strong>Share</strong> — send the teacher invite link to faculty panelists. They join with the faculty password.</div>
-          </div>
-          <div style="display:flex; gap:12px; align-items:flex-start;">
-            <div style="width:32px; height:32px; background:var(--accent-indigo-dim); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; color:var(--accent-indigo);">3</div>
-            <div><strong>Defend</strong> — student joins the student view, teachers score and interrupt in real-time.</div>
-          </div>
+        <div class="invite-box">
+          <div class="form-label">Teacher Panel Link</div>
+          <code id="teacher-url"></code>
+          <button class="btn btn-ghost btn-sm copy-btn" onclick="copyInvite('teacher-url', this)">Copy</button>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+          <button id="open-host-btn" class="btn btn-primary btn-lg" style="flex: 1;">Open Host View →</button>
+          <a href="faculty-dashboard.html" class="btn btn-secondary btn-lg">Back</a>
         </div>
       </div>
-
-      <!-- Create button -->
-      <div style="text-align:center; margin-bottom:var(--sp-4);">
-        <button class="btn btn-primary btn-lg" id="create-btn" onclick="createSession()" disabled>Create Live Session →</button>
-      </div>
-
-      <!-- Session created -->
-      <div id="session-created" style="display:none;">
-        <div class="card card-static" style="text-align:center; margin-bottom:var(--sp-3);">
-          <div style="font-size:2rem; margin-bottom:12px;">🎙</div>
-          <h2 style="margin-bottom:8px;">Session Created!</h2>
-          <div style="font-family:var(--font-mono); font-size:3rem; font-weight:700; color:var(--accent-indigo); letter-spacing:0.1em; margin-bottom:16px;" id="room-code-display">——</div>
-          <p style="color:var(--text-muted); margin-bottom:var(--sp-3);">Share the teacher link and room code with faculty panelists.</p>
-
-          <div style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:16px; margin-bottom:var(--sp-3); text-align:left;">
-            <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted); margin-bottom:8px;">TEACHER INVITE LINK</div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <code id="teacher-link" style="flex:1; font-size:0.8125rem; color:var(--accent-indigo); word-break:break-all;"></code>
-              <button class="btn btn-secondary btn-sm" onclick="copyLink()">Copy</button>
-            </div>
-          </div>
-
-          <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:var(--radius-md); padding:14px; margin-bottom:var(--sp-3); text-align:left;">
-            <div style="font-size:0.8125rem; color:var(--accent-orange);">⚠ Default faculty password: <code style="font-family:var(--font-mono);">faculty2024</code> — set TEACHER_PASSWORD env var in production.</div>
-          </div>
-
-          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <a id="join-as-student-btn" href="#" class="btn btn-primary btn-lg">Join as Student →</a>
-            <a id="join-as-teacher-btn" href="#" class="btn btn-secondary btn-lg">Join as Teacher</a>
-          </div>
-        </div>
-      </div>
-
     </div>
   </main>
 
+  <script src="nav.js"></script>
   <script>
-    let students = [];
+    const params = new URLSearchParams(window.location.search);
+    const studentId = params.get('studentId');
+    let roomCode = '';
 
-    async function loadStudents() {
+    if (!localStorage.getItem('facultyToken')) window.location.href = 'faculty-login.html';
+    if (!studentId) window.location.href = 'faculty-dashboard.html';
+
+    async function loadStudent() {
       try {
-        const res = await fetch('/api/students');
-        students = await res.json();
-        const sel = document.getElementById('student-select');
-        if (!students.length) {
-          sel.innerHTML = '<option value="">No students registered yet</option>';
-          return;
-        }
-        sel.innerHTML = '<option value="">— Select a student —</option>' +
-          students.map(s => `<option value="${s.id}">${s.name} — ${s.title}</option>`).join('');
-        sel.addEventListener('change', onStudentSelect);
-      } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load students: ${e.message}</div>`;
+        const res = await fetch(`/api/students/${studentId}`);
+        const s = await res.json();
+        document.getElementById('student-summary').innerHTML = `
+          <div class="form-label">${s.branch} / ${s.year}</div>
+          <h3 style="color: var(--text-primary);">${s.name}</h3>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">${s.title}</p>
+        `;
+      } catch (err) {
+        showToast('Student not found', 'error');
       }
     }
 
-    function onStudentSelect() {
-      const id = document.getElementById('student-select').value;
-      const info = document.getElementById('student-info');
-      const btn = document.getElementById('create-btn');
-      if (!id) { info.style.display = 'none'; btn.disabled = true; return; }
-      const s = students.find(st => st.id === id);
-      if (!s) return;
-      document.getElementById('sel-name').textContent = s.name;
-      document.getElementById('sel-title').textContent = s.title;
-      const warn = document.getElementById('sel-warning');
-      if (!s.questionsGenerated) {
-        warn.style.display = 'block';
-        document.getElementById('sel-gen-link').href = `questions.html?id=${id}`;
-        btn.disabled = true;
-      } else {
-        warn.style.display = 'none';
-        btn.disabled = false;
-      }
-      info.style.display = 'block';
-    }
-
-    async function createSession() {
-      const studentId = document.getElementById('student-select').value;
-      if (!studentId) return;
-      const btn = document.getElementById('create-btn');
-      btn.disabled = true;
-      btn.textContent = 'Creating...';
-
+    document.getElementById('create-session-btn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.classList.add('btn--loading');
+      
       try {
         const res = await fetch('/api/sessions/create', {
           method: 'POST',
@@ -144,35 +87,64 @@
           body: JSON.stringify({ studentId })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-
-        document.getElementById('room-code-display').textContent = data.roomCode;
-        const teacherUrl = `${window.location.origin}/teacher.html?room=${data.roomCode}`;
-        const studentUrl = `${window.location.origin}/session-host.html?room=${data.roomCode}`;
-        document.getElementById('teacher-link').textContent = teacherUrl;
-        document.getElementById('join-as-student-btn').href = studentUrl;
-        document.getElementById('join-as-teacher-btn').href = teacherUrl;
-        document.getElementById('session-created').style.display = 'block';
-        document.getElementById('step-select').style.display = 'none';
-        document.getElementById('step-info').style.display = 'none';
-        btn.style.display = 'none';
-      } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to create session: ${e.message}</div>`;
-        btn.disabled = false;
-        btn.textContent = 'Create Live Session →';
+        roomCode = data.roomCode;
+        
+        document.getElementById('setup-step').style.display = 'none';
+        document.getElementById('invite-step').style.display = 'block';
+        
+        typewriterRoomCode(roomCode);
+        
+        const origin = window.location.origin;
+        document.getElementById('student-url').textContent = `${origin}/defense.html?room=${roomCode}`;
+        document.getElementById('teacher-url').textContent = `${origin}${data.teacherInviteUrl}`;
+        
+        document.getElementById('open-host-btn').addEventListener('click', () => {
+          window.location.href = `session-host.html?room=${roomCode}`;
+        });
+        
+        triggerConfetti();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.classList.remove('btn--loading');
       }
+    });
+
+    function typewriterRoomCode(code) {
+      const el = document.getElementById('room-code-el');
+      let i = 0;
+      const timer = setInterval(() => {
+        el.textContent += code[i];
+        i++;
+        if (i >= code.length) clearInterval(timer);
+      }, 800); // 80ms per char as requested (Wait, user said 80ms, I put 800 by mistake, fixing)
+    }
+    
+    // Correcting typewriter
+    function typewriterRoomCode(code) {
+      const el = document.getElementById('room-code-el');
+      el.textContent = '';
+      let i = 0;
+      const timer = setInterval(() => {
+        el.textContent += code[i];
+        i++;
+        if (i >= code.length) clearInterval(timer);
+      }, 80); 
     }
 
-    function copyLink() {
-      const link = document.getElementById('teacher-link').textContent;
-      navigator.clipboard.writeText(link).then(() => {
-        const btn = event.target;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
+    function copyInvite(id, btn) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('popIn');
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('popIn');
+        }, 2000);
       });
     }
 
-    loadStudents();
+    loadStudent();
   </script>
 </body>
 </html>

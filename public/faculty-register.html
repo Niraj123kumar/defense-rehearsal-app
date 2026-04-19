@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Registration - PDRS</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    .register-container { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 64px); }
+    .register-card { width: 100%; max-width: 500px; }
+    .password-strength { height: 4px; width: 100%; background: var(--bg-hover); margin-top: 0.5rem; border-radius: var(--radius-pill); overflow: hidden; }
+    .strength-bar { height: 100%; width: 0; transition: all 0.3s ease; }
+    .match-indicator { position: absolute; right: 1rem; top: 1.5rem; display: none; }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="main-nav"></nav>
+
+  <main class="container register-container">
+    <div class="card register-card glass card-3d stagger-children">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <div style="font-size: 3.5rem; margin-bottom: 1rem;">🎓</div>
+        <h1 class="gradient-text">Faculty Registration</h1>
+        <p style="color: var(--text-muted);">Create your account to manage students and sessions.</p>
+      </div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <input type="text" id="name" class="form-input" required placeholder=" ">
+          <label class="form-label-floating">Full Name</label>
+        </div>
+
+        <div class="form-group">
+          <input type="email" id="email" class="form-input" required placeholder=" ">
+          <label class="form-label-floating">Work Email</label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <input type="text" id="department" class="form-input" required placeholder=" ">
+            <label class="form-label-floating">Department</label>
+          </div>
+          <div class="form-group">
+            <input type="text" id="employee-id" class="form-input" required placeholder=" ">
+            <label class="form-label-floating">Employee ID</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <input type="password" id="password" class="form-input" required placeholder=" " minlength="8">
+          <label class="form-label-floating">Password (Min 8 chars)</label>
+          <div class="password-strength"><div id="strength-bar" class="strength-bar"></div></div>
+        </div>
+
+        <div class="form-group">
+          <input type="password" id="confirm-password" class="form-input" required placeholder=" ">
+          <label class="form-label-floating">Confirm Password</label>
+          <div id="match-indicator" class="match-indicator">✅</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Create Account</button>
+      </form>
+
+      <div style="margin-top: 2rem; text-align: center; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--text-muted);">Already have an account? <a href="faculty-login.html" style="color: var(--accent-indigo); font-weight: 600;">Login here →</a></p>
+      </div>
+    </div>
+  </main>
+
+  <script src="nav.js"></script>
+  <script>
+    const form = document.getElementById('register-form');
+    const pw = document.getElementById('password');
+    const cpw = document.getElementById('confirm-password');
+    const sBar = document.getElementById('strength-bar');
+    const matchInd = document.getElementById('match-indicator');
+
+    pw.addEventListener('input', () => {
+      const val = pw.value;
+      let strength = 0;
+      if (val.length >= 8) strength += 33;
+      if (/[A-Z]/.test(val)) strength += 33;
+      if (/[0-9]/.test(val)) strength += 34;
+      
+      sBar.style.width = strength + '%';
+      sBar.style.background = strength < 40 ? 'var(--accent-red)' : (strength < 80 ? 'var(--accent-amber)' : 'var(--accent-emerald)');
+    });
+
+    cpw.addEventListener('input', () => {
+      const match = pw.value === cpw.value && cpw.value.length > 0;
+      matchInd.style.display = match ? 'block' : 'none';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (pw.value !== cpw.value) return showToast('Passwords do not match', 'error');
+
+      const btn = form.querySelector('button');
+      btn.classList.add('btn--loading');
+
+      const payload = {
+        name: document.getElementById('name').value,
+        email: document.getElementById('email').value,
+        department: document.getElementById('department').value,
+        employeeId: document.getElementById('employee-id').value,
+        password: pw.value
+      };
+
+      try {
+        const res = await fetch('/api/faculty/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error((await res.json()).error || 'Registration failed');
+
+        showToast('Registration successful! Please login.', 'success');
+        triggerConfetti();
+        setTimeout(() => { window.location.href = 'faculty-login.html'; }, 2000);
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.classList.remove('btn--loading');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -3,199 +3,122 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coaching — PDRS</title>
+  <title>AI Coaching - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .coaching-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .dimension-card { border-top: 4px solid var(--accent-indigo); }
+    blockquote { background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-sm); border-left: 3px solid var(--accent-amber); font-style: italic; margin: 1rem 0; font-size: 0.9rem; }
+    .practice-widget { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-subtle); }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="coaching"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper">
+  <main class="container">
+    <div id="coaching-guard" style="display:none; text-align: center; padding: 4rem 0;">
+      <div class="card" style="max-width: 500px; margin: 0 auto;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+        <h2>Complete a solo session first</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">We need at least one completed session to analyze your performance and provide coaching.</p>
+        <a href="defense.html" class="btn btn-primary">Start Solo Practice</a>
+      </div>
+    </div>
 
-      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-        <div>
-          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">STEP 4 OF 4</p>
-          <h1 id="page-title">Coaching</h1>
-          <p id="page-subtitle" style="color:var(--text-muted);">Targeted practice for your weakest dimensions.</p>
-        </div>
-        <div id="header-actions" style="display:flex; gap:10px; flex-wrap:wrap; display:none;">
-          <button class="btn btn-secondary btn-sm" onclick="window.print()">📄 Export</button>
-          <button class="btn btn-secondary btn-sm" onclick="loadCoaching()">↻ Regenerate</button>
-        </div>
+    <div id="coaching-content" class="stagger-children">
+      <h1 style="margin-bottom: 0.5rem;">AI Coaching Panel</h1>
+      <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Personalized tips and targeted questions to help you improve your defense skills.</p>
+
+      <div id="skeleton-coaching" class="coaching-grid">
+        <div class="card skeleton" style="height: 400px;"></div>
+        <div class="card skeleton" style="height: 400px;"></div>
       </div>
 
-      <div id="msg"></div>
-
-      <!-- No student -->
-      <div id="no-student" class="empty-state" style="display:none;">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="40" cy="32" r="14" stroke-opacity="0.5"/><path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/></svg>
-        <h3>No student selected</h3>
-        <a href="dashboard.html" class="btn btn-primary btn-sm">View Dashboard</a>
-      </div>
-
-      <!-- No sessions -->
-      <div id="no-sessions" class="empty-state" style="display:none;">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="16" y="20" width="48" height="40" rx="4" stroke-opacity="0.3"/><path d="M28 36h24M28 44h16" stroke-linecap="round" stroke-opacity="0.4"/></svg>
-        <h3>No sessions completed yet</h3>
-        <p>Complete at least one defense session to unlock coaching.</p>
-        <a id="go-defense-link" href="#" class="btn btn-primary btn-sm">Start Defense Session →</a>
-      </div>
-
-      <!-- Loading -->
-      <div id="loading" style="display:none; text-align:center; padding:var(--sp-6);">
-        <div style="font-size:2rem; margin-bottom:16px; animation:spin 2s linear infinite; display:inline-block;">🎯</div>
-        <h3 style="margin-bottom:8px;">Generating coaching questions...</h3>
-        <p style="color:var(--text-muted); font-size:0.875rem;">Analyzing your session scores to find weak spots</p>
-      </div>
-
-      <!-- Coaching content -->
-      <div id="coaching-content" style="display:none;">
-
-        <!-- Weak dimensions summary -->
-        <div class="weak-cards" style="margin-bottom:var(--sp-4);" id="weak-cards"></div>
-
-        <!-- Score overview -->
-        <div class="card card-static" style="margin-bottom:var(--sp-4);" id="score-overview">
-          <h2 style="font-size:1.125rem; margin-bottom:var(--sp-2);">Your Dimension Averages</h2>
-          <div id="score-overview-bars"></div>
-        </div>
-
-        <!-- Drill sections -->
-        <div id="drill-sections"></div>
-
-        <!-- Next steps -->
-        <div class="card card-static" style="text-align:center; padding:var(--sp-4);">
-          <h3 style="margin-bottom:8px;">Practice makes permanent</h3>
-          <p style="color:var(--text-muted); margin-bottom:var(--sp-3);">Work through these questions, then run another defense session to measure improvement.</p>
-          <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-            <a id="go-defense-btn" href="#" class="btn btn-primary">Run Another Session →</a>
-            <a id="go-profile-btn" href="#" class="btn btn-secondary">View Progress</a>
-          </div>
-        </div>
-
-      </div>
-
+      <div id="coaching-data" class="coaching-grid" style="display:none;"></div>
     </div>
   </main>
 
-  <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .drill-q { background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:8px; display:flex; gap:12px; align-items:flex-start; transition:border-color 0.2s; }
-    .drill-q:hover { border-color:var(--border-card); }
-    .drill-q-num { font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); flex-shrink:0; padding-top:2px; }
-    .drill-q-text { font-size:0.9375rem; line-height:1.5; }
-    .score-bar-row { margin-bottom:14px; }
-    .score-bar-label { display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.875rem; }
-    .score-bar-track { height:8px; background:var(--bg-elevated); border-radius:4px; overflow:hidden; }
-    .score-bar-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
-  </style>
-
+  <script src="nav.js"></script>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const studentId = params.get('id');
-    const dimColors = { clarity: '#60A5FA', reasoning: '#F59E0B', depth: '#EF4444', confidence: '#10B981' };
-    const dimLabels = { clarity: 'Clarity', reasoning: 'Logical Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
-    const dimDescriptions = {
-      clarity: 'Ability to explain concepts clearly without technical jargon.',
-      reasoning: 'Logical structure and well-grounded argumentation.',
-      depth: 'Technical depth — knowing the internals, not just the surface.',
-      confidence: 'Composed, decisive delivery that shows ownership.'
-    };
+    const studentId = localStorage.getItem('studentId');
+    if (!studentId) window.location.href = 'onboarding.html';
 
     async function loadCoaching() {
-      if (!studentId) { document.getElementById('no-student').style.display = 'flex'; return; }
-
-      document.getElementById('coaching-content').style.display = 'none';
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('msg').innerHTML = '';
-
       try {
-        // Get student info
-        const sRes = await fetch(`/api/students/${studentId}`);
-        if (!sRes.ok) throw new Error('Student not found');
-        const student = await sRes.json();
-        document.getElementById('page-title').textContent = `Coaching — ${student.name}`;
-
-        document.getElementById('go-defense-link').href = `defense.html?id=${studentId}`;
-        document.getElementById('go-defense-btn').href = `defense.html?id=${studentId}`;
-        document.getElementById('go-profile-btn').href = `profile.html?id=${studentId}`;
-
         const res = await fetch(`/api/coaching/${studentId}`, { method: 'POST' });
-        const data = await res.json();
-
-        if (!res.ok) {
-          if (res.status === 400) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('go-defense-link').href = `defense.html?id=${studentId}`;
-            document.getElementById('no-sessions').style.display = 'flex';
-            return;
-          }
-          throw new Error(data.error);
+        if (res.status === 400) {
+          document.getElementById('coaching-guard').style.display = 'block';
+          document.getElementById('coaching-content').style.display = 'none';
+          return;
         }
-
-        renderCoaching(data.coaching, student);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('coaching-content').style.display = 'block';
-        document.getElementById('header-actions').style.display = 'flex';
-
-      } catch (e) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('msg').innerHTML = `<div class="msg-error">⚠ ${e.message}</div>`;
+        if (!res.ok) throw new Error('Failed to fetch coaching data');
+        
+        const { coaching } = await res.json();
+        renderCoaching(coaching);
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     }
 
-    function renderCoaching(coaching, student) {
-      const { weakDimensions, dimAverages, questions, tips } = coaching;
-
-      // Weak cards
-      const wcEl = document.getElementById('weak-cards');
-      wcEl.innerHTML = weakDimensions.map(dim => `
-        <div class="weak-card">
-          <h3>⚠ ${dimLabels[dim] || dim}</h3>
-          <p>${dimDescriptions[dim] || ''}</p>
-          ${dimAverages ? `<div style="margin-top:10px; font-family:var(--font-mono); font-size:1.25rem; font-weight:700; color:#fca5a5;">${(dimAverages[dim] || 0).toFixed(2)}/5</div>` : ''}
-          ${tips?.[dim] ? `<div style="margin-top:10px; font-size:0.8125rem; color:var(--text-muted); border-top:1px solid rgba(239,68,68,0.2); padding-top:8px;">💡 ${tips[dim]}</div>` : ''}
-        </div>`).join('');
-
-      // Score overview bars
-      if (dimAverages) {
-        const barsEl = document.getElementById('score-overview-bars');
-        barsEl.innerHTML = Object.entries(dimAverages).map(([dim, avg]) => `
-          <div class="score-bar-row">
-            <div class="score-bar-label">
-              <span>${dimLabels[dim] || dim}</span>
-              <span style="font-family:var(--font-mono); font-weight:700;">${avg.toFixed(2)}/5</span>
-            </div>
-            <div class="score-bar-track">
-              <div class="score-bar-fill" style="width:${(avg/5)*100}%; background:${dimColors[dim] || '#6366F1'};"></div>
-            </div>
-          </div>`).join('');
-      } else {
-        document.getElementById('score-overview').style.display = 'none';
-      }
-
-      // Drill sections
-      const drillEl = document.getElementById('drill-sections');
-      drillEl.innerHTML = weakDimensions.map(dim => {
-        const qs = questions[dim] || [];
-        return `
-          <div class="card card-static" style="margin-bottom:var(--sp-3);">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--sp-2); flex-wrap:wrap; gap:8px;">
-              <div>
-                <h2 style="font-size:1.125rem; margin-bottom:4px;">🎯 ${dimLabels[dim] || dim} Drill</h2>
-                <p style="font-size:0.8125rem; color:var(--text-muted);">${dimDescriptions[dim] || ''}</p>
+    function renderCoaching(data) {
+      const container = document.getElementById('coaching-data');
+      const weakDims = data.weakDimensions.length > 0 ? data.weakDimensions : ['clarity', 'reasoning']; // Fallback
+      
+      container.innerHTML = weakDims.map((dim, i) => `
+        <div class="card dimension-card stagger-children" style="animation-delay: ${i * 0.2}s">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="text-transform: capitalize;">${dim}</h2>
+            <div class="tier-badge tier-2">Avg: ${(data.dimAverages[dim] || 0).toFixed(1)}/5</div>
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Your performance in this dimension shows room for growth.</p>
+          
+          <blockquote>${data.tips[dim] || `Focus on structure and detail when explaining ${dim} aspects of your project.`}</blockquote>
+          
+          <div class="practice-widget">
+            <h4 style="margin-bottom: 1rem;">Targeted Practice</h4>
+            ${(data.questions[dim] || [`Explain the core logic of your project with a focus on ${dim}.`]).map((q, j) => `
+              <div class="question-item" style="margin-bottom: 1.5rem;">
+                <p style="font-weight: 500; margin-bottom: 0.75rem;">${q}</p>
+                <textarea class="form-textarea" placeholder="Draft your improved answer..." rows="3"></textarea>
+                <button class="btn btn-secondary btn-sm" style="margin-top: 0.5rem;" onclick="evaluateCoachingAnswer(this, '${dim}', '${q.replace(/'/g, "\\'")}')">Check Improvement</button>
+                <div class="inline-result" style="display:none; margin-top: 1rem; font-size: 0.85rem; padding: 0.75rem; background: var(--bg-hover); border-radius: var(--radius-sm);"></div>
               </div>
-              <span class="badge badge-indigo">${qs.length} questions</span>
-            </div>
-            <div>
-              ${qs.map((q, i) => `
-                <div class="drill-q">
-                  <span class="drill-q-num">Q${i+1}</span>
-                  <span class="drill-q-text">${q}</span>
-                </div>`).join('')}
-            </div>
-          </div>`;
-      }).join('');
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('skeleton-coaching').style.display = 'none';
+      container.style.display = 'grid';
+    }
+
+    async function evaluateCoachingAnswer(btn, dim, questionText) {
+      const textarea = btn.previousElementSibling;
+      const resultDiv = btn.nextElementSibling;
+      const answer = textarea.value.trim();
+      if (!answer) return showToast('Please type an answer first', 'warning');
+
+      btn.classList.add('btn--loading');
+      try {
+        const res = await fetch('/api/evaluate-answer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId, questionText, answer, tier: 2 })
+        });
+        const { scores } = await res.json();
+        
+        resultDiv.innerHTML = `
+          <div style="color: var(--accent-indigo); font-weight: 700; margin-bottom: 0.25rem;">Score: ${scores[dim].toFixed(1)}/5.0</div>
+          <p>${scores.feedback}</p>
+        `;
+        resultDiv.style.display = 'block';
+        triggerConfetti();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.classList.remove('btn--loading');
+      }
     }
 
     loadCoaching();

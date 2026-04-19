@@ -3,223 +3,196 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — PDRS</title>
+  <title>Student Dashboard - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    .dashboard-header { margin-bottom: 4rem; }
+    .greeting { font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+    .action-card { display: flex; flex-direction: column; min-height: 240px; position: relative; overflow: hidden; }
+    .action-card::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, var(--accent-indigo-glow) 0%, transparent 70%); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+    .action-card:hover::before { opacity: 1; }
+    .card-icon { font-size: 3rem; margin-bottom: 1.5rem; display: block; transition: transform 0.4s var(--ease-bounce); }
+    .action-card:hover .card-icon { transform: scale(1.2) rotate(5deg); }
+    .card-footer { margin-top: auto; padding-top: 2rem; }
+    .stats-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 4rem; }
+    .stat-mini { padding: 1.5rem; text-align: center; }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="dashboard"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper">
+  <main class="container">
+    <header class="dashboard-header stagger-children">
+      <div class="greeting visible">Hello, <span id="student-name-display" class="gradient-text typewriter-data" data-phrases='["Explorer", "Scholar", "Innovator"]' data-period="3000">Student</span></div>
+      <h2 id="project-title-display" class="visible" style="color: var(--text-muted); font-weight: 500;">Loading your project...</h2>
+    </header>
 
-      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-        <div>
-          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">DASHBOARD</p>
-          <h1>All Students</h1>
-          <p style="color:var(--text-muted);">Manage students, track progress, and start sessions.</p>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <a href="analytics.html" class="btn btn-secondary btn-sm">📊 Faculty View</a>
-          <a href="onboarding.html" class="btn btn-primary">+ Register Student</a>
-        </div>
+    <div class="stats-summary stagger-children">
+      <div class="card glass stat-mini">
+        <div class="form-label">Total Sessions</div>
+        <div class="counter gradient-text" style="font-size: 2rem; font-weight: 800;" id="stat-sessions" data-target="0">0</div>
       </div>
-
-      <!-- Summary stats -->
-      <div class="metric-grid" style="margin-bottom:var(--sp-4);" id="stats-grid">
-        <div class="metric-card">
-          <div class="metric-label">Total Students</div>
-          <div class="metric-value" id="stat-total">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Sessions Run</div>
-          <div class="metric-value" id="stat-sessions">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Questions Generated</div>
-          <div class="metric-value" id="stat-questions">—</div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-label">Avg Score</div>
-          <div class="metric-value" id="stat-avg">—</div>
-        </div>
+      <div class="card glass stat-mini">
+        <div class="form-label">Avg. Defense Score</div>
+        <div class="counter gradient-text" style="font-size: 2rem; font-weight: 800;" id="stat-score" data-target="0" data-decimals="2">0.00</div>
       </div>
-
-      <div id="msg"></div>
-
-      <!-- Search + filter -->
-      <div style="display:flex; gap:12px; margin-bottom:var(--sp-3); flex-wrap:wrap; align-items:center;">
-        <input type="text" id="search-input" placeholder="Search by name or project..." style="flex:1; min-width:200px;" oninput="filterStudents()">
-        <select id="filter-status" onchange="filterStudents()" style="width:180px;">
-          <option value="">All students</option>
-          <option value="ready">Questions ready</option>
-          <option value="no-questions">Needs questions</option>
-          <option value="has-sessions">Has sessions</option>
-        </select>
+      <div class="card glass stat-mini">
+        <div class="form-label">Questions Mastered</div>
+        <div class="counter gradient-text" style="font-size: 2rem; font-weight: 800;" id="stat-qs" data-target="0">0</div>
       </div>
+    </div>
 
-      <!-- Loading skeleton -->
-      <div id="skeleton">
-        <div class="skeleton" style="height:72px; border-radius:var(--radius-md); margin-bottom:8px;"></div>
-        <div class="skeleton" style="height:72px; border-radius:var(--radius-md); margin-bottom:8px;"></div>
-        <div class="skeleton" style="height:72px; border-radius:var(--radius-md);"></div>
-      </div>
-
-      <!-- Student table -->
-      <div id="students-wrap" style="display:none;">
-        <div class="card card-static" style="padding:0; overflow:hidden;">
-          <table class="data-table" id="students-table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Project</th>
-                <th>Status</th>
-                <th>Sessions</th>
-                <th>Score Δ</th>
-                <th style="text-align:right;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="students-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Empty state -->
-      <div id="empty-state" class="empty-state" style="display:none;">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <circle cx="40" cy="32" r="14" stroke-opacity="0.5"/>
-          <path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/>
-          <path d="M56 20v12M62 26H50" stroke-opacity="0.6" stroke-linecap="round"/>
-        </svg>
-        <h3>No students yet</h3>
-        <p>Register your first student to get started with defense rehearsal.</p>
-        <a href="onboarding.html" class="btn btn-primary btn-sm">Register First Student →</a>
-      </div>
-
+    <div id="dashboard-content" class="dashboard-grid stagger-children">
+      <!-- Skeleton Loaders -->
+      <div class="card glass skeleton" style="height: 240px;"></div>
+      <div class="card glass skeleton" style="height: 240px;"></div>
+      <div class="card glass skeleton" style="height: 240px;"></div>
+      <div class="card glass skeleton" style="height: 240px;"></div>
+      <div class="card glass skeleton" style="height: 240px;"></div>
+      <div class="card glass skeleton" style="height: 240px;"></div>
     </div>
   </main>
 
-  <!-- Delete confirm modal -->
-  <div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(10,10,15,0.85); z-index:200; align-items:center; justify-content:center;">
-    <div class="card card-static" style="max-width:400px; width:90%; padding:28px;">
-      <h3 style="margin-bottom:8px;">Delete Student?</h3>
-      <p style="font-size:0.875rem; color:var(--text-muted); margin-bottom:var(--sp-3);">This will permanently remove the student and all their scores. This cannot be undone.</p>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-secondary" style="flex:1;" onclick="closeDeleteModal()">Cancel</button>
-        <button class="btn" style="flex:1; background:var(--accent-red); color:#fff;" id="confirm-delete-btn">Delete</button>
-      </div>
-    </div>
-  </div>
-
+  <script src="nav.js"></script>
   <script>
-    let allStudents = [];
-    let deleteTargetId = null;
+    const studentId = localStorage.getItem('studentId');
+    if (!studentId) window.location.href = 'onboarding.html';
 
-    async function loadStudents() {
+    async function loadDashboard() {
       try {
-        const res = await fetch('/api/students');
-        allStudents = await res.json();
-        document.getElementById('skeleton').style.display = 'none';
+        const res = await fetch(`/api/students/${studentId}`);
+        if (!res.ok) throw new Error('Student data not found');
+        const student = await res.json();
 
-        // Stats
-        const total = allStudents.length;
-        const sessions = allStudents.reduce((s, st) => s + (st.sessionCount || 0), 0);
-        const questions = allStudents.filter(s => s.questionsGenerated).length;
-        const scored = allStudents.filter(s => s.final !== null);
-        const avgScore = scored.length ? (scored.reduce((s, st) => s + (st.final || 0), 0) / scored.length).toFixed(2) : '—';
+        const qRes = await fetch(`/api/questions/${studentId}`);
+        const hasQuestions = qRes.ok;
 
-        document.getElementById('stat-total').textContent = total;
-        document.getElementById('stat-sessions').textContent = sessions;
-        document.getElementById('stat-questions').textContent = questions;
-        document.getElementById('stat-avg').textContent = avgScore !== '—' ? avgScore + '/5' : '—';
+        const sRes = await fetch(`/api/scores/${studentId}`);
+        const sessions = await sRes.json() || [];
 
-        if (total === 0) {
-          document.getElementById('empty-state').style.display = 'flex';
-        } else {
-          document.getElementById('students-wrap').style.display = 'block';
-          renderStudents(allStudents);
+        renderHeader(student);
+        renderStats(sessions);
+        renderActions(hasQuestions);
+      } catch (err) {
+        showToast(err.message, 'error');
+        if (err.message.includes('not found')) {
+          localStorage.removeItem('studentId');
+          window.location.href = 'onboarding.html';
         }
-      } catch (e) {
-        document.getElementById('skeleton').style.display = 'none';
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Failed to load students: ${e.message}</div>`;
       }
     }
 
-    function filterStudents() {
-      const query = document.getElementById('search-input').value.toLowerCase();
-      const status = document.getElementById('filter-status').value;
-      let filtered = allStudents.filter(s => {
-        const matchQuery = !query || s.name.toLowerCase().includes(query) || s.title.toLowerCase().includes(query);
-        const matchStatus = !status
-          || (status === 'ready' && s.questionsGenerated)
-          || (status === 'no-questions' && !s.questionsGenerated)
-          || (status === 'has-sessions' && s.sessionCount > 0);
-        return matchQuery && matchStatus;
+    function renderHeader(student) {
+      document.getElementById('project-title-display').textContent = student.title;
+      const greetingEl = document.getElementById('student-name-display');
+      greetingEl.dataset.phrases = JSON.stringify([student.name.split(' ')[0], "Scholar", "Innovator"]);
+    }
+
+    function renderStats(sessions) {
+      const totalQs = sessions.reduce((acc, s) => acc + s.responses.length, 0);
+      const avgScore = sessions.length > 0 ? sessions.reduce((acc, s) => acc + s.average, 0) / sessions.length : 0;
+
+      document.getElementById('stat-sessions').dataset.target = sessions.length;
+      document.getElementById('stat-score').dataset.target = avgScore;
+      document.getElementById('stat-qs').dataset.target = totalQs;
+      
+      // Refresh counters
+      document.querySelectorAll('.counter').forEach(c => {
+        animateCounter(c, 0, parseFloat(c.dataset.target), 1500, c.dataset.decimals || 0);
       });
-      renderStudents(filtered);
     }
 
-    function renderStudents(students) {
-      const tbody = document.getElementById('students-tbody');
-      if (!students.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:32px;">No students match your filter.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = students.map(s => {
-        const delta = s.baseline !== null && s.final !== null ? (s.final - s.baseline) : null;
-        const deltaHtml = delta !== null
-          ? `<span class="${delta > 0 ? 'delta-positive' : delta < 0 ? 'delta-negative' : 'delta-neutral'}">${delta > 0 ? '+' : ''}${delta.toFixed(2)}</span>`
-          : '<span style="color:var(--text-muted);">—</span>';
+    function renderActions(hasQuestions) {
+      const content = document.getElementById('dashboard-content');
+      content.innerHTML = `
+        <div class="card glass action-card card-3d">
+          <span class="card-icon">🧠</span>
+          <h3>Generate Questions</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Let AI analyze your project architecture and build 10 tiered defense questions.</p>
+          <div class="card-footer">
+            <button id="btn-generate" class="btn btn-primary" style="width:100%" ${hasQuestions ? 'disabled' : ''}>
+              ${hasQuestions ? 'Questions Ready ✓' : 'Generate Now'}
+            </button>
+          </div>
+        </div>
 
-        const statusBadge = s.questionsGenerated
-          ? `<span class="badge badge-emerald">✓ Ready</span>`
-          : `<span class="badge badge-orange">Needs Questions</span>`;
+        <div class="card glass action-card card-3d">
+          <span class="card-icon">⚔️</span>
+          <h3>Solo Practice</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Start a private rehearsal session with real-time AI scoring and feedback.</p>
+          <div class="card-footer">
+            <a href="defense.html" class="btn btn-secondary ${!hasQuestions ? 'disabled' : ''}" style="width:100%">Start Rehearsal</a>
+          </div>
+        </div>
 
-        return `<tr onclick="window.location='profile.html?id=${s.id}'" style="cursor:pointer;">
-          <td>
-            <div style="font-weight:600;">${s.name}</div>
-            <div style="font-size:0.8rem; color:var(--text-muted);">${[s.year, s.branch].filter(Boolean).join(' · ')}</div>
-          </td>
-          <td style="max-width:220px;">
-            <div style="font-size:0.9375rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${s.title}</div>
-          </td>
-          <td>${statusBadge}</td>
-          <td><span style="font-family:var(--font-mono);">${s.sessionCount || 0}</span></td>
-          <td>${deltaHtml}</td>
-          <td style="text-align:right;" onclick="event.stopPropagation()">
-            <div style="display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
-              ${!s.questionsGenerated ? `<a href="questions.html?id=${s.id}" class="btn btn-primary btn-sm">Gen Questions</a>` : `<a href="questions.html?id=${s.id}" class="btn btn-secondary btn-sm">Questions</a>`}
-              ${s.questionsGenerated ? `<a href="defense.html?id=${s.id}" class="btn btn-primary btn-sm">Defense</a>` : ''}
-              ${s.sessionCount > 0 ? `<a href="coaching.html?id=${s.id}" class="btn btn-secondary btn-sm">Coach</a>` : ''}
-              <button class="btn btn-sm" style="background:rgba(239,68,68,0.1); color:#fca5a5; border:1px solid rgba(239,68,68,0.2);" onclick="openDeleteModal('${s.id}')">✕</button>
-            </div>
-          </td>
-        </tr>`;
-      }).join('');
+        <div class="card glass action-card card-3d">
+          <span class="card-icon">📚</span>
+          <h3>Review Library</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Study the generated questions across all tiers to prepare your reasoning.</p>
+          <div class="card-footer">
+            <a href="questions.html" class="btn btn-secondary ${!hasQuestions ? 'disabled' : ''}" style="width:100%">View Questions</a>
+          </div>
+        </div>
+
+        <div class="card glass action-card card-3d">
+          <span class="card-icon">📈</span>
+          <h3>Performance Profile</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Track your growth trajectory, dimension averages, and session history.</p>
+          <div class="card-footer">
+            <a href="profile.html" class="btn btn-secondary" style="width:100%">Open Profile</a>
+          </div>
+        </div>
+
+        <div class="card glass action-card card-3d">
+          <span class="card-icon">💡</span>
+          <h3>AI Coaching</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Get targeted tips for your weakest performance dimensions and practice more.</p>
+          <div class="card-footer">
+            <a href="coaching.html" class="btn btn-secondary" style="width:100%">Get Coaching</a>
+          </div>
+        </div>
+
+        <div class="card glass action-card card-3d">
+          <span class="card-icon">🌐</span>
+          <h3>Join Live Panel</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Enter a room code to join a live defense hosted by your faculty.</p>
+          <div class="card-footer" style="display: flex; gap: 0.5rem;">
+            <input type="text" id="room-code" class="form-input" placeholder="ROOM ID" style="text-transform: uppercase; padding: 0.6rem;">
+            <button id="btn-join-live" class="btn btn-secondary">Join</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btn-generate')?.addEventListener('click', generateQuestions);
+      document.getElementById('btn-join-live')?.addEventListener('click', () => {
+        const code = document.getElementById('room-code').value.trim().toUpperCase();
+        if (code) window.location.href = `defense.html?room=${code}`;
+        else showToast('Enter a room code', 'error');
+      });
+      
+      init3DTilt();
     }
 
-    function openDeleteModal(id) {
-      deleteTargetId = id;
-      document.getElementById('delete-modal').style.display = 'flex';
-    }
-
-    function closeDeleteModal() {
-      deleteTargetId = null;
-      document.getElementById('delete-modal').style.display = 'none';
-    }
-
-    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
-      if (!deleteTargetId) return;
+    async function generateQuestions(e) {
+      const btn = e.currentTarget;
+      btn.classList.add('btn--loading');
       try {
-        await fetch(`/api/students/${deleteTargetId}`, { method: 'DELETE' });
-        closeDeleteModal();
-        loadStudents();
-      } catch (e) {
-        document.getElementById('msg').innerHTML = `<div class="msg-error">Delete failed: ${e.message}</div>`;
-        closeDeleteModal();
+        const res = await fetch(`/api/generate-questions/${studentId}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Generation failed');
+        
+        triggerConfetti();
+        showToast('Questions generated successfully!', 'success');
+        renderActions(true);
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.classList.remove('btn--loading');
       }
-    });
+    }
 
-    loadStudents();
+    loadDashboard();
   </script>
 </body>
 </html>

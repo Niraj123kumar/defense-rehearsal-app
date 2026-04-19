@@ -3,345 +3,342 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Defense Session — PDRS</title>
+  <title>Defense Session - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    #defense-container { max-width: 900px; margin: 2rem auto; }
+    .question-box { background: var(--bg-card); backdrop-filter: blur(20px); padding: 3rem; border-radius: var(--radius-lg); border: 1px solid var(--border-default); position: relative; min-height: 400px; display: flex; flex-direction: column; }
+    .progress-overlay { position: absolute; top: 1.5rem; right: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+    .score-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-top: 3rem; }
+    .feedback-box { background: rgba(22, 27, 34, 0.5); padding: 2rem; border-radius: var(--radius-md); margin-top: 2rem; border-left: 5px solid var(--accent-indigo); animation: slideInRight 0.5s var(--ease-quick); }
+    #current-question { font-size: 1.75rem; line-height: 1.4; font-weight: 700; margin-bottom: 2rem; min-height: 5rem; }
+    .voice-indicator { width: 12px; height: 12px; border-radius: 50%; background: var(--accent-red); display: inline-block; margin-right: 0.5rem; animation: pulseGlow 1.5s infinite; }
+    #final-view { text-align: center; padding: 5rem 0; }
+    .trophy-anim { font-size: 8rem; margin-bottom: 2rem; animation: popIn 0.8s var(--ease-bounce) forwards; }
+  </style>
 </head>
 <body>
-  <script src="nav.js" data-page="defense"></script>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <main class="main-content">
-    <div class="page-wrapper" style="max-width:800px;">
+  <main class="container" id="defense-container">
+    <div id="setup-view" class="stagger-children" style="text-align: center; padding: 6rem 0;">
+      <h1 class="gradient-text" style="font-size: 4rem; margin-bottom: 1rem;">Prepare for Battle</h1>
+      <p id="session-desc" style="color: var(--text-muted); font-size: 1.25rem; max-width: 600px; margin: 0 auto 3rem;">AI will challenge you with 10 tiered questions. Your reasoning, depth, and confidence will be tested.</p>
+      <button id="start-btn" class="btn btn-primary btn-lg glass" style="padding: 1rem 4rem;">Enter Rehearsal Room</button>
+    </div>
 
-      <!-- Header -->
-      <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px;">
-        <div>
-          <p style="font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-indigo); margin-bottom:6px;">STEP 3 OF 4</p>
-          <h1 id="page-title">Defense Session</h1>
-          <p id="page-subtitle" style="color:var(--text-muted);">Loading...</p>
-        </div>
-        <div id="session-progress" style="display:none; text-align:right;">
-          <div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">PROGRESS</div>
-          <div style="font-family:var(--font-mono); font-size:1.5rem; font-weight:700;"><span id="q-current">0</span>/<span id="q-total">10</span></div>
-        </div>
-      </div>
-
-      <div id="msg"></div>
-
-      <!-- No student -->
-      <div id="no-student" style="display:none;" class="empty-state">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="40" cy="32" r="14" stroke-opacity="0.5"/><path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke-opacity="0.3"/></svg>
-        <h3>No student selected</h3>
-        <p>Go to dashboard and select a student with generated questions.</p>
-        <a href="dashboard.html" class="btn btn-primary btn-sm">View Dashboard</a>
-      </div>
-
-      <!-- No questions -->
-      <div id="no-questions" style="display:none;" class="empty-state">
-        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="16" y="12" width="48" height="56" rx="4" stroke-opacity="0.3"/><path d="M28 28h24M28 38h16" stroke-opacity="0.4" stroke-linecap="round"/></svg>
-        <h3>No questions generated</h3>
-        <p>Generate AI questions before starting a defense session.</p>
-        <a id="go-questions-link" href="#" class="btn btn-primary btn-sm">Generate Questions →</a>
-      </div>
-
-      <!-- Progress bar -->
-      <div id="progress-bar-wrap" style="display:none; margin-bottom:var(--sp-3);">
-        <div class="progress-bar-track" style="height:6px;">
-          <div class="progress-bar-fill" id="progress-fill" style="width:0%;"></div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.75rem; color:var(--text-muted);">
-          <span id="tier-label-display"></span>
-          <span id="progress-pct">0%</span>
-        </div>
-      </div>
-
-      <!-- Question card -->
-      <div id="question-section" style="display:none;">
-
-        <div class="session-question">
-          <div class="session-q-meta">
-            <span class="badge" id="tier-badge">Tier 1</span>
-            <span style="font-size:0.875rem; color:var(--text-muted);" id="q-label">Question 1 of 10</span>
+    <div id="session-view" style="display:none;" class="stagger-children">
+      <div class="question-box glass card-3d">
+        <div class="progress-overlay">
+          <div style="text-align: right;">
+            <div id="q-count" style="font-family: var(--font-mono); font-weight: 800; font-size: 1.25rem; color: var(--accent-indigo);">01 / 10</div>
+            <div style="font-size: 0.7rem; color: var(--text-faint); font-weight: 700; letter-spacing: 1px;">PROGRESS</div>
           </div>
-          <div class="session-q-text" id="question-text">Loading question...</div>
+          <svg width="60" height="60" class="progress-ring">
+            <circle cx="30" cy="30" r="26" fill="none" stroke="var(--bg-hover)" stroke-width="4"></circle>
+            <circle id="progress-circle" cx="30" cy="30" r="26" fill="none" stroke="var(--accent-indigo)" stroke-width="4" stroke-dasharray="163.36" stroke-dashoffset="163.36" class="progress-ring-circle"></circle>
+          </svg>
+        </div>
+        
+        <div id="tier-label" class="tier-badge tier-1" style="margin-bottom: 1.5rem; display: inline-block;">TIER 1: FUNDAMENTALS</div>
+        <div id="current-question" class="typewriter">Loading challenge...</div>
+
+        <div id="input-area" class="visible">
+          <div class="form-group">
+            <textarea id="answer-input" class="form-textarea" rows="6" placeholder=" " style="font-size: 1.2rem; line-height: 1.6;"></textarea>
+            <label class="form-label-floating">Your Defense Argument</label>
+          </div>
+          <div id="transcript-live" style="margin-bottom: 1.5rem; min-height: 1.5rem; font-style: italic; color: var(--accent-amber);"></div>
+          <div style="display: flex; gap: 1rem;">
+            <button id="submit-answer" class="btn btn-primary btn-lg" style="flex: 2;">Analyze Response</button>
+            <button id="voice-btn" class="btn btn-secondary btn-lg" style="flex: 1;">🎤 Start Speaking</button>
+          </div>
         </div>
 
-        <div class="session-response">
-          <div class="form-group">
-            <label>Your Answer</label>
-            <textarea id="answer-input" rows="6" placeholder="Type your answer here. Think out loud — explain your reasoning, not just the conclusion. Aim for 3-5 sentences minimum."></textarea>
-            <div style="display:flex; justify-content:space-between; margin-top:4px;">
-              <span id="answer-hint" style="font-size:0.8rem; color:var(--text-muted);">Tip: Structure as — what, why, tradeoffs.</span>
-              <span id="word-count" style="font-size:0.8rem; color:var(--text-muted);">0 words</span>
+        <div id="evaluation-area" style="display:none;">
+          <div class="score-grid">
+            <div class="score-item">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span class="form-label" style="margin:0;">Clarity</span>
+                <span id="score-clarity" style="font-weight: 800; color: var(--accent-indigo); font-family: var(--font-mono);">0.0</span>
+              </div>
+              <div class="dim-bar-container" style="height: 10px;"><div id="bar-clarity" class="dim-bar-fill"></div></div>
+            </div>
+            <div class="score-item">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span class="form-label" style="margin:0;">Reasoning</span>
+                <span id="score-reasoning" style="font-weight: 800; color: var(--accent-indigo); font-family: var(--font-mono);">0.0</span>
+              </div>
+              <div class="dim-bar-container" style="height: 10px;"><div id="bar-reasoning" class="dim-bar-fill"></div></div>
+            </div>
+            <div class="score-item">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span class="form-label" style="margin:0;">Depth</span>
+                <span id="score-depth" style="font-weight: 800; color: var(--accent-indigo); font-family: var(--font-mono);">0.0</span>
+              </div>
+              <div class="dim-bar-container" style="height: 10px;"><div id="bar-depth" class="dim-bar-fill"></div></div>
+            </div>
+            <div class="score-item">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span class="form-label" style="margin:0;">Confidence</span>
+                <span id="score-confidence" style="font-weight: 800; color: var(--accent-indigo); font-family: var(--font-mono);">0.0</span>
+              </div>
+              <div class="dim-bar-container" style="height: 10px;"><div id="bar-confidence" class="dim-bar-fill"></div></div>
             </div>
           </div>
 
-          <div class="btn-group">
-            <button class="btn btn-primary" id="submit-answer-btn" onclick="submitAnswer()">Submit Answer →</button>
-            <button class="btn btn-secondary" id="skip-btn" onclick="skipQuestion()">Skip</button>
-          </div>
-        </div>
-
-        <!-- AI Feedback card (shown after submit) -->
-        <div id="feedback-card" style="display:none;" class="card card-static" style="margin-top:var(--sp-3);">
-          <h3 style="font-size:1rem; margin-bottom:var(--sp-2);">🤖 AI Evaluation</h3>
-
-          <div id="score-bars-wrap" style="margin-bottom:var(--sp-3);"></div>
-
-          <div id="feedback-text" style="background:var(--bg-elevated); border-radius:var(--radius-md); padding:14px; margin-bottom:var(--sp-2);">
-            <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--text-muted); margin-bottom:6px;">FEEDBACK</div>
-            <p id="feedback-content" style="font-size:0.9375rem; line-height:1.6; color:var(--text-secondary);"></p>
+          <div class="feedback-box">
+            <h4 style="margin-bottom: 0.5rem; color: var(--text-primary);">AI FEEDBACK</h4>
+            <p id="eval-feedback" style="font-size: 1rem; color: var(--text-muted); margin-bottom: 1.5rem;"></p>
+            <h4 style="margin-bottom: 0.5rem; color: var(--accent-emerald);">PRO TIP</h4>
+            <p id="eval-suggestion" style="font-size: 1rem; font-weight: 500;"></p>
           </div>
 
-          <div id="suggestion-text" style="background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.2); border-radius:var(--radius-md); padding:14px; margin-bottom:var(--sp-3);">
-            <div style="font-size:0.75rem; font-family:var(--font-mono); color:var(--accent-indigo); margin-bottom:6px;">💡 IMPROVE THIS ANSWER</div>
-            <p id="suggestion-content" style="font-size:0.9375rem; color:var(--text-secondary);"></p>
-          </div>
-
-          <button class="btn btn-primary" id="next-btn" onclick="nextQuestion()">Next Question →</button>
-        </div>
-
-      </div>
-
-      <!-- Session Complete -->
-      <div id="session-complete" style="display:none;">
-        <div class="card card-static" style="text-align:center; padding:var(--sp-5);">
-          <div style="font-size:3rem; margin-bottom:16px;">🎉</div>
-          <h2 style="margin-bottom:8px;">Session Complete!</h2>
-          <p style="color:var(--text-muted); margin-bottom:var(--sp-4);">Here's how you did across all dimensions.</p>
-
-          <div id="final-scores-wrap" style="margin-bottom:var(--sp-4); text-align:left;"></div>
-
-          <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
-            <a id="go-coaching-btn" href="#" class="btn btn-primary btn-lg">Get Coaching →</a>
-            <a id="go-profile-btn" href="#" class="btn btn-secondary btn-lg">View Profile</a>
-            <button class="btn btn-secondary" onclick="restartSession()">Retry Session</button>
-          </div>
+          <button id="next-q" class="btn btn-primary btn-lg" style="margin-top: 3rem; width: 100%; font-size: 1.2rem;">Next Challenge →</button>
         </div>
       </div>
+    </div>
 
+    <div id="final-view" style="display:none;" class="stagger-children">
+      <div class="trophy-anim">🏆</div>
+      <h1 class="gradient-text" style="font-size: 4rem;">Defense Complete!</h1>
+      <p style="color: var(--text-muted); font-size: 1.25rem; margin-bottom: 3rem;">Outstanding effort. Your final rehearsal metrics are ready.</p>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 4rem;">
+        <div id="final-avg" style="font-size: 6rem; font-weight: 900; line-height: 1; color: var(--accent-indigo);">0.00</div>
+        <div class="form-label" style="letter-spacing: 4px;">OVERALL SCORE</div>
+      </div>
+      <div style="display: flex; gap: 1.5rem; justify-content: center;">
+        <a href="dashboard.html" class="btn btn-secondary btn-lg glass">Back to Dashboard</a>
+        <a href="profile.html" class="btn btn-primary btn-lg glass">View Analytics Profile</a>
+      </div>
     </div>
   </main>
 
-  <style>
-    .score-bar-row { margin-bottom:14px; }
-    .score-bar-label { display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.875rem; }
-    .score-bar-track { height:10px; background:var(--bg-elevated); border-radius:5px; overflow:hidden; }
-    .score-bar-fill { height:100%; border-radius:5px; transition:width 0.6s ease; }
-  </style>
-
+  <script src="nav.js"></script>
   <script>
+    const studentId = localStorage.getItem('studentId');
     const params = new URLSearchParams(window.location.search);
-    const studentId = params.get('id');
-    let allQuestions = [];
-    let currentIndex = 0;
+    const roomCode = params.get('room');
+    let socket = null;
+    let questions = [];
+    let currentIdx = 0;
     let sessionResponses = [];
-    let currentStudent = null;
-    let isSubmitting = false;
+    let recognition = null;
+    let typewriterInstance = null;
 
-    const dimColors = { clarity: '#60A5FA', reasoning: '#F59E0B', depth: '#EF4444', confidence: '#10B981' };
-    const dimLabels = { clarity: 'Clarity', reasoning: 'Logical Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
-    const tierNames = { tier1: 'Tier 1 — Surface Clarity', tier2: 'Tier 2 — Design Tradeoffs', tier3: 'Tier 3 — Failure Modes' };
-    const tierBadges = { tier1: 'badge-blue', tier2: 'badge-indigo', tier3: 'badge-orange' };
+    if (!studentId) window.location.href = 'onboarding.html';
 
-    async function init() {
-      if (!studentId) { document.getElementById('no-student').style.display = 'flex'; return; }
-      try {
-        const sRes = await fetch(`/api/students/${studentId}`);
-        if (!sRes.ok) throw new Error();
-        currentStudent = await sRes.json();
-        document.getElementById('page-title').textContent = `Defense — ${currentStudent.name}`;
-        document.getElementById('page-subtitle').textContent = currentStudent.title;
+    if (roomCode) {
+      document.querySelector('h1').textContent = `Live Panel: ${roomCode}`;
+      document.getElementById('session-desc').textContent = `Connected to faculty room. Waiting for examiner to begin...`;
+      initSocket();
+    }
 
-        const qRes = await fetch(`/api/questions/${studentId}`);
-        if (!qRes.ok) {
-          document.getElementById('go-questions-link').href = `questions.html?id=${studentId}`;
-          document.getElementById('no-questions').style.display = 'flex';
-          return;
+    function initSocket() {
+      socket = io(window.location.origin);
+      socket.emit('join-session', { roomCode, user: { id: studentId, name: localStorage.getItem('studentName'), role: 'student' } });
+      
+      socket.on('phase-changed', ({ phase, question }) => {
+        if (phase === 'defense') {
+          document.getElementById('setup-view').style.display = 'none';
+          document.getElementById('session-view').style.display = 'block';
+          renderQuestion(question);
+        } else if (phase === 'closed') {
+          window.location.href = 'dashboard.html';
         }
-        const qData = await qRes.json();
-        const q = qData.questions;
+      });
 
-        // Build flat question list with tier metadata
-        allQuestions = [
-          ...(q.tier1 || []).map(text => ({ text, tier: 'tier1' })),
-          ...(q.tier2 || []).map(text => ({ text, tier: 'tier2' })),
-          ...(q.tier3 || []).map(text => ({ text, tier: 'tier3' }))
+      socket.on('interrupt-fired', ({ teacherName }) => {
+        showToast(`INTERRUPT: ${teacherName} has a follow-up question!`, 'warning');
+        if (recognition) recognition.stop();
+      });
+    }
+
+    document.getElementById('start-btn').addEventListener('click', async () => {
+      if (roomCode) return; // Wait for faculty
+      
+      try {
+        const res = await fetch(`/api/questions/${studentId}`);
+        if (!res.ok) throw new Error('Generate questions first');
+        const data = await res.json();
+        questions = [
+          ...data.tier1.map(q=>({text:q,tier:1,label:'TIER 1: FUNDAMENTALS'})), 
+          ...data.tier2.map(q=>({text:q,tier:2,label:'TIER 2: ARCHITECTURE'})), 
+          ...data.tier3.map(q=>({text:q,tier:3,label:'TIER 3: SYSTEM RESILIENCE'}))
         ];
-
-        document.getElementById('q-total').textContent = allQuestions.length;
-        document.getElementById('session-progress').style.display = 'block';
-        document.getElementById('progress-bar-wrap').style.display = 'block';
-        document.getElementById('question-section').style.display = 'block';
-
-        document.getElementById('go-coaching-btn').href = `coaching.html?id=${studentId}`;
-        document.getElementById('go-profile-btn').href = `profile.html?id=${studentId}`;
-
-        showQuestion(0);
-      } catch (e) {
-        document.getElementById('no-student').style.display = 'flex';
+        
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('session-view').style.display = 'block';
+        renderQuestion(questions[currentIdx]);
+      } catch (err) {
+        showToast(err.message, 'error');
+        setTimeout(() => window.location.href = 'dashboard.html', 1500);
       }
-    }
-
-    function showQuestion(index) {
-      if (index >= allQuestions.length) { finishSession(); return; }
-      const q = allQuestions[index];
-      currentIndex = index;
-
-      document.getElementById('q-current').textContent = index + 1;
-      document.getElementById('q-label').textContent = `Question ${index + 1} of ${allQuestions.length}`;
-      document.getElementById('question-text').textContent = q.text;
-      document.getElementById('tier-badge').textContent = tierNames[q.tier].split('—')[0].trim();
-      document.getElementById('tier-badge').className = `badge ${tierBadges[q.tier]}`;
-      document.getElementById('tier-label-display').textContent = tierNames[q.tier];
-      document.getElementById('answer-input').value = '';
-      document.getElementById('word-count').textContent = '0 words';
-      document.getElementById('feedback-card').style.display = 'none';
-      document.getElementById('submit-answer-btn').style.display = 'inline-flex';
-      document.getElementById('skip-btn').style.display = 'inline-flex';
-      document.getElementById('submit-answer-btn').disabled = false;
-
-      const pct = Math.round((index / allQuestions.length) * 100);
-      document.getElementById('progress-fill').style.width = pct + '%';
-      document.getElementById('progress-pct').textContent = pct + '%';
-
-      // Hints per tier
-      const hints = {
-        tier1: 'Tip: Explain clearly without jargon. Assume the listener is smart but unfamiliar.',
-        tier2: 'Tip: Discuss tradeoffs — what you gained and what you gave up.',
-        tier3: 'Tip: Be honest about limitations. Show you\'ve thought about edge cases.'
-      };
-      document.getElementById('answer-hint').textContent = hints[q.tier] || '';
-    }
-
-    document.getElementById('answer-input').addEventListener('input', (e) => {
-      const words = e.target.value.trim().split(/\s+/).filter(w => w).length;
-      document.getElementById('word-count').textContent = `${words} word${words !== 1 ? 's' : ''}`;
     });
 
-    async function submitAnswer() {
-      if (isSubmitting) return;
+    function renderQuestion(q) {
+      const qEl = document.getElementById('current-question');
+      const tierEl = document.getElementById('tier-label');
+      
+      tierEl.textContent = q.label;
+      tierEl.className = `tier-badge tier-${q.tier}`;
+      if (q.tier === 3) tierEl.style.animation = 'pulseGlow 2s infinite';
+      
+      // Typewriter effect for question
+      qEl.innerHTML = '';
+      let i = 0;
+      const speed = 30;
+      const type = () => {
+        if (i < q.text.length) {
+          qEl.innerHTML += q.text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        }
+      };
+      type();
+
+      document.getElementById('answer-input').value = '';
+      document.getElementById('input-area').style.display = 'block';
+      document.getElementById('evaluation-area').style.display = 'none';
+      
+      const total = roomCode ? 10 : questions.length;
+      const current = currentIdx + 1;
+      document.getElementById('q-count').textContent = `${current.toString().padStart(2, '0')} / ${total}`;
+      
+      // Progress Ring
+      const circle = document.getElementById('progress-circle');
+      const offset = 163.36 - (163.36 * (current / total));
+      circle.style.strokeDashoffset = offset;
+    }
+
+    document.getElementById('submit-answer').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
       const answer = document.getElementById('answer-input').value.trim();
-      if (!answer) {
-        document.getElementById('msg').innerHTML = '<div class="msg-error" style="margin-bottom:8px;">Please write an answer before submitting.</div>';
-        return;
-      }
-      document.getElementById('msg').innerHTML = '';
-      isSubmitting = true;
+      if (!answer) return showToast('You must provide a defense argument', 'error');
 
-      const btn = document.getElementById('submit-answer-btn');
+      btn.classList.add('btn--loading');
       btn.disabled = true;
-      btn.textContent = 'AI is evaluating...';
-      document.getElementById('skip-btn').style.display = 'none';
+      document.getElementById('answer-input').disabled = true;
 
-      const q = allQuestions[currentIndex];
       try {
+        const q = roomCode ? { text: document.getElementById('current-question').textContent, tier: 1 } : questions[currentIdx];
         const res = await fetch('/api/evaluate-answer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ studentId, questionText: q.text, answer, tier: q.tier })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        
+        if (!res.ok) throw new Error('AI evaluation timed out');
+        const { scores } = await res.json();
+        
+        sessionResponses.push({ questionText: q.text, answer, scores });
+        if (socket && roomCode) socket.emit('student-answered', { roomCode, answer, scores });
 
-        const scores = data.scores;
-        sessionResponses.push({ questionText: q.text, tier: q.tier, answer, scores });
-
-        // Render score bars
-        const barsEl = document.getElementById('score-bars-wrap');
-        barsEl.innerHTML = ['clarity', 'reasoning', 'depth', 'confidence'].map(dim => `
-          <div class="score-bar-row">
-            <div class="score-bar-label">
-              <span>${dimLabels[dim]}</span>
-              <span style="font-family:var(--font-mono); font-weight:700;">${scores[dim]}/5</span>
-            </div>
-            <div class="score-bar-track">
-              <div class="score-bar-fill" style="width:${(scores[dim]/5)*100}%; background:${dimColors[dim]};"></div>
-            </div>
-          </div>`).join('');
-
-        document.getElementById('feedback-content').textContent = scores.feedback || 'Good attempt. Keep practicing.';
-        document.getElementById('suggestion-content').textContent = scores.suggestion || 'Try to be more specific.';
-        document.getElementById('feedback-card').style.display = 'block';
-        document.getElementById('submit-answer-btn').style.display = 'none';
-
-        // Update next button label
-        const isLast = currentIndex + 1 >= allQuestions.length;
-        document.getElementById('next-btn').textContent = isLast ? 'Finish Session ✓' : 'Next Question →';
-
-      } catch (e) {
-        // Save without AI score on error
-        sessionResponses.push({ questionText: q.text, tier: q.tier, answer, scores: { clarity: 0, reasoning: 0, depth: 0, confidence: 0 } });
-        document.getElementById('msg').innerHTML = `<div class="msg-error">AI evaluation failed: ${e.message}. Moving to next question.</div>`;
-        setTimeout(nextQuestion, 2000);
+        renderEvaluation(scores);
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.classList.remove('btn--loading');
+        btn.disabled = false;
+        document.getElementById('answer-input').disabled = false;
       }
-      isSubmitting = false;
-      btn.disabled = false;
-      btn.textContent = 'Submit Answer →';
+    });
+
+    function renderEvaluation(scores) {
+      document.getElementById('input-area').style.display = 'none';
+      document.getElementById('evaluation-area').style.display = 'block';
+      
+      const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
+      dims.forEach((dim, i) => {
+        const el = document.getElementById(`score-${dim}`);
+        const bar = document.getElementById(`bar-${dim}`);
+        bar.style.width = '0%'; // Reset first
+        setTimeout(() => {
+          bar.style.width = `${scores[dim] * 20}%`;
+          animateCounter(el, 0, scores[dim], 1000, 1);
+        }, 100);
+      });
+
+      document.getElementById('eval-feedback').textContent = scores.feedback;
+      document.getElementById('eval-suggestion').textContent = scores.suggestion;
     }
 
-    function skipQuestion() {
-      const q = allQuestions[currentIndex];
-      sessionResponses.push({ questionText: q.text, tier: q.tier, answer: '(skipped)', scores: { clarity: 0, reasoning: 0, depth: 0, confidence: 0 } });
-      nextQuestion();
-    }
+    document.getElementById('next-q').addEventListener('click', async () => {
+      if (roomCode) {
+        document.getElementById('session-view').style.display = 'none';
+        document.getElementById('setup-view').style.display = 'block';
+        document.getElementById('session-desc').textContent = 'Waiting for faculty to provide next question...';
+        return;
+      }
 
-    function nextQuestion() {
-      showQuestion(currentIndex + 1);
-    }
+      currentIdx++;
+      if (currentIdx < questions.length) {
+        renderQuestion(questions[currentIdx]);
+      } else {
+        await finishSession();
+      }
+    });
 
     async function finishSession() {
-      document.getElementById('question-section').style.display = 'none';
-      document.getElementById('progress-bar-wrap').style.display = 'none';
-      document.getElementById('session-complete').style.display = 'block';
-      document.getElementById('progress-fill').style.width = '100%';
-      document.getElementById('progress-pct').textContent = '100%';
+      document.getElementById('session-view').style.display = 'none';
+      document.getElementById('final-view').style.display = 'block';
+      
+      const avg = sessionResponses.reduce((acc, r) => {
+        const s = r.scores;
+        return acc + (s.clarity + s.reasoning + s.depth + s.confidence) / 4;
+      }, 0) / sessionResponses.length;
 
-      // Compute averages
-      const dims = ['clarity', 'reasoning', 'depth', 'confidence'];
-      const totals = { clarity: 0, reasoning: 0, depth: 0, confidence: 0 };
-      let scored = 0;
-      sessionResponses.forEach(r => {
-        if (r.scores.clarity > 0) {
-          dims.forEach(d => totals[d] += r.scores[d] || 0);
-          scored++;
-        }
-      });
-      const avgs = {};
-      dims.forEach(d => avgs[d] = scored > 0 ? parseFloat((totals[d] / scored).toFixed(2)) : 0);
+      animateCounter(document.getElementById('final-avg'), 0, avg, 2000, 2);
+      if (avg >= 4.0) triggerConfetti();
 
-      // Display final scores
-      const el = document.getElementById('final-scores-wrap');
-      el.innerHTML = dims.map(dim => `
-        <div class="score-bar-row">
-          <div class="score-bar-label">
-            <span>${dimLabels[dim]}</span>
-            <span style="font-family:var(--font-mono); font-weight:700; color:${dimColors[dim]};">${avgs[dim]}/5</span>
-          </div>
-          <div class="score-bar-track">
-            <div class="score-bar-fill" style="width:${(avgs[dim]/5)*100}%; background:${dimColors[dim]};"></div>
-          </div>
-        </div>`).join('');
-
-      // Save scores
       try {
         await fetch('/api/scores', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ studentId, sessionType: 'solo', responses: sessionResponses.map(r => ({ questionText: r.questionText, tier: r.tier, scores: r.scores })) })
+          body: JSON.stringify({ studentId, responses: sessionResponses, sessionType: 'solo' })
         });
-      } catch (e) { console.error('Failed to save scores:', e); }
+      } catch (err) {
+        console.error('Failed to save scores:', err);
+      }
     }
 
-    function restartSession() {
-      currentIndex = 0;
-      sessionResponses = [];
-      document.getElementById('session-complete').style.display = 'none';
-      document.getElementById('question-section').style.display = 'block';
-      document.getElementById('progress-bar-wrap').style.display = 'block';
-      showQuestion(0);
-    }
+    // Voice Support
+    const voiceBtn = document.getElementById('voice-btn');
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
 
-    init();
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+          else interimTranscript += event.results[i][0].transcript;
+        }
+        document.getElementById('answer-input').value += finalTranscript;
+        document.getElementById('transcript-live').textContent = interimTranscript;
+        
+        if (socket && roomCode) {
+          socket.emit('transcript-chunk', { roomCode, text: interimTranscript || finalTranscript, isFinal: !!finalTranscript });
+        }
+      };
+
+      voiceBtn.addEventListener('click', () => {
+        if (voiceBtn.textContent.includes('Start')) {
+          recognition.start();
+          voiceBtn.innerHTML = '<span class="voice-indicator"></span> Stop Speaking';
+          voiceBtn.classList.replace('btn-secondary', 'btn-danger');
+        } else {
+          recognition.stop();
+          voiceBtn.innerHTML = '🎤 Start Speaking';
+          voiceBtn.classList.replace('btn-danger', 'btn-secondary');
+        }
+      });
+    } else {
+      voiceBtn.style.display = 'none';
+    }
   </script>
 </body>
 </html>

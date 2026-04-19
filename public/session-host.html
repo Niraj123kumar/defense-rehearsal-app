@@ -3,436 +3,299 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Session — PDRS</title>
+  <title>Host View - PDRS</title>
   <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
+  <style>
+    .host-layout { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; height: calc(100vh - 100px); }
+    .sidebar { display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto; }
+    .main-panel { background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-default); display: flex; flex-direction: column; overflow: hidden; }
+    .tabs { display: flex; border-bottom: 1px solid var(--border-default); background: var(--bg-secondary); }
+    .tab { padding: 1rem 1.5rem; cursor: pointer; color: var(--text-muted); font-weight: 600; border-bottom: 2px solid transparent; transition: var(--transition-fast); }
+    .tab.active { color: var(--accent-indigo); border-bottom-color: var(--accent-indigo); background: var(--bg-hover); }
+    .tab-content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+    .transcript-feed { display: flex; flex-direction: column; gap: 0.75rem; }
+    .transcript-chunk { padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-indigo); animation: fadeInUp 0.3s ease-out; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
+    .dot-online { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); }
+    .dot-offline { background: var(--accent-red); }
+    .flagged-score { background: rgba(239, 68, 68, 0.1) !important; color: var(--accent-red); font-weight: 700; border: 1px solid var(--accent-red); }
+  </style>
 </head>
-<body style="background:#0A0A0F; overflow:hidden;">
+<body>
+  <nav class="navbar" id="main-nav"></nav>
 
-  <!-- Browser check -->
-  <div id="chrome-check" style="display:none; position:fixed; inset:0; background:#0A0A0F; z-index:999; display:flex; align-items:center; justify-content:center;">
-    <div class="card card-static" style="max-width:400px; text-align:center; padding:32px;">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="1.5" style="margin:0 auto 16px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-      <h2 style="margin-bottom:8px;">Chrome Required</h2>
-      <p style="color:var(--text-muted); font-size:0.9rem;">Live speech recognition only works in Google Chrome. Please open this page in Chrome.</p>
-    </div>
-  </div>
-
-  <script>
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      document.getElementById('chrome-check').style.display = 'flex';
-    }
-  </script>
-
-  <main style="height:100vh; display:flex; flex-direction:column;">
-
-    <!-- Top bar -->
-    <div style="background:rgba(10,10,15,0.9); backdrop-filter:blur(16px); border-bottom:1px solid var(--border-subtle); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
-      <div style="display:flex; align-items:center; gap:16px;">
-        <span class="badge badge-indigo" id="phase-pill">WAITING</span>
-        <span style="font-size:0.875rem; color:var(--text-muted);" id="q-counter-label">Awaiting session start...</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);">Room:</span>
-        <span style="font-family:var(--font-mono); font-size:0.9rem; font-weight:700; color:var(--accent-indigo);" id="room-code-display">—</span>
-      </div>
-    </div>
-
-    <!-- Progress bar -->
-    <div class="progress-bar-track" style="height:3px; flex-shrink:0;">
-      <div class="progress-bar-fill" id="progress-fill" style="width:0%; height:100%;"></div>
-    </div>
-
-    <!-- Main content -->
-    <div style="flex:1; display:grid; grid-template-columns:60% 40%; overflow:hidden; gap:0;">
-
-      <!-- LEFT: Question + Speech -->
-      <div style="padding:32px 24px 24px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; border-right:1px solid var(--border-subtle);">
-
-        <!-- Question card -->
-        <div class="card card-static" id="question-card" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-            <span class="badge badge-blue" id="tier-badge" style="display:none;">T1</span>
-            <span style="font-size:0.8rem; color:var(--text-muted);" id="q-source-label"></span>
+  <main class="container">
+    <div class="host-layout">
+      <!-- Sidebar -->
+      <aside class="sidebar stagger-children">
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div class="tier-badge tier-1">ROOM: <span id="room-display">...</span></div>
+            <div id="conn-status"><span class="status-dot dot-offline"></span><span style="font-size: 0.8rem;">Disconnected</span></div>
           </div>
-          <p id="q-text" style="font-size:1.5rem; line-height:1.5; font-weight:500; text-align:center; color:var(--text-primary);">
-            Waiting for your teacher to start the session...
-          </p>
-        </div>
-
-        <!-- Interrupt overlay -->
-        <div id="interrupt-card" style="display:none; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); border-radius:16px; padding:20px; margin-bottom:8px;">
-          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-            <span class="badge badge-red">INTERRUPT</span>
-            <span style="font-size:0.875rem; color:#fca5a5; font-weight:600;" id="interrupt-teacher"></span>
+          <div id="student-info">
+            <div class="skeleton" style="height: 20px; width: 100px; margin-bottom: 0.5rem;"></div>
+            <div class="skeleton" style="height: 30px; width: 200px;"></div>
           </div>
-          <p id="interrupt-question" style="font-size:1.125rem; color:#fca5a5; font-weight:500;"></p>
         </div>
 
-        <!-- Speech recognition -->
-        <div style="flex-shrink:0;">
-          <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:12px;">
-            <button class="btn btn-primary" id="start-speaking-btn" disabled>🎤 Start Speaking</button>
-            <button class="btn btn-secondary" id="done-speaking-btn" style="display:none;" disabled>Done</button>
+        <div class="card">
+          <h4 style="margin-bottom: 1rem;">Faculty Panel</h4>
+          <div id="teachers-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <p style="color: var(--text-faint); font-size: 0.85rem;">No teachers joined yet.</p>
           </div>
-          <div id="speech-status" style="text-align:center; font-size:0.8125rem; color:var(--text-muted); margin-bottom:12px;"></div>
-          <textarea id="transcript-box" readonly placeholder="Your words will appear here as you speak..." style="min-height:100px; background:var(--bg-elevated); resize:none; font-size:1rem; line-height:1.6;"></textarea>
-          <div id="interim-display" style="font-size:0.875rem; color:var(--text-muted); min-height:20px; font-style:italic;"></div>
         </div>
 
-        <!-- AI Score reveal -->
-        <div id="score-reveal" style="display:none;" class="card card-static">
-          <h3 style="text-align:center; margin-bottom:20px; font-size:1rem; color:var(--text-secondary);">Your AI Score</h3>
-          <div id="score-bars"></div>
-        </div>
-
-        <!-- Empty state for waiting -->
-        <div id="waiting-state" style="text-align:center; padding:24px;">
-          <p style="color:var(--text-muted);">Your camera and audio will appear once teachers join the session.</p>
-        </div>
-
-      </div>
-
-      <!-- RIGHT: Video + Scores + Teachers -->
-      <div style="padding:24px 20px; display:flex; flex-direction:column; gap:16px; overflow-y:auto;">
-
-        <!-- Self preview -->
-        <div style="position:relative; flex-shrink:0;">
-          <video id="self-video" autoplay muted playsinline style="width:100%; height:180px; object-fit:cover; border-radius:12px; background:#12121A; transform:scaleX(-1); display:none;"></video>
-          <div id="self-preview-placeholder" style="width:100%; height:180px; border-radius:12px; background:var(--bg-elevated); border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.893L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-            <span style="font-size:0.75rem; color:var(--text-muted);">Camera preview</span>
+        <div class="card">
+          <h4 style="margin-bottom: 1rem;">Session Controls</h4>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button id="btn-start" class="btn btn-primary">Start Defense</button>
+            <button id="btn-next" class="btn btn-secondary" disabled>Next Question</button>
+            <button id="btn-end" class="btn btn-danger" disabled>End Session</button>
           </div>
-          <div id="mic-indicator" style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:8px; font-size:0.7rem; font-family:var(--font-mono); display:none;">MIC</div>
+        </div>
+      </aside>
+
+      <!-- Main Panel -->
+      <section class="main-panel">
+        <div class="tabs">
+          <div class="tab active" data-tab="transcript">Live Transcript</div>
+          <div class="tab" data-tab="scores">Panel Scores</div>
+          <div class="tab" data-tab="panel-qs">Panel Questions</div>
         </div>
 
-        <!-- Session room code -->
-        <div style="background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px; text-align:center; flex-shrink:0;">
-          <div style="font-size:0.7rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px;">Room Code</div>
-          <div id="room-code-big" style="font-family:var(--font-mono); font-size:1.75rem; font-weight:700; letter-spacing:0.1em; color:var(--accent-indigo);"></div>
+        <div id="tab-transcript" class="tab-content">
+          <div id="current-q-display" class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent-amber);">
+            <div class="form-label" style="color: var(--accent-amber);">Current Question</div>
+            <h3 id="host-question-text">Waiting for session to start...</h3>
+          </div>
+          <div id="transcript-container" class="transcript-feed"></div>
         </div>
 
-        <!-- Live Panel -->
-        <div style="flex-shrink:0;">
-          <h4 style="font-size:0.875rem; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">👥 Live Panel</h4>
-          <div id="teachers-list"></div>
+        <div id="tab-scores" class="tab-content" style="display:none;">
+          <div id="ai-score-card" class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--accent-indigo);">
+            <h4 style="margin-bottom: 1rem;">AI Evaluation Reference</h4>
+            <div id="ai-scores-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
+              <div style="text-align: center;"><div class="form-label">Clarity</div><div id="ai-clarity">-</div></div>
+              <div style="text-align: center;"><div class="form-label">Reasoning</div><div id="ai-reasoning">-</div></div>
+              <div style="text-align: center;"><div class="form-label">Depth</div><div id="ai-depth">-</div></div>
+              <div style="text-align: center;"><div class="form-label">Confidence</div><div id="ai-confidence">-</div></div>
+            </div>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Teacher</th>
+                  <th>Clarity</th>
+                  <th>Reasoning</th>
+                  <th>Depth</th>
+                  <th>Confidence</th>
+                </tr>
+              </thead>
+              <tbody id="score-grid-tbody"></tbody>
+            </table>
+          </div>
+          
+          <div id="disagreement-resolution" class="card" style="margin-top: 1.5rem; border-top: 4px solid var(--accent-red); display:none;">
+            <h4 style="color: var(--accent-red); margin-bottom: 0.5rem;">⚠️ Disagreement Detected</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Score standard deviation > 1.0. Please discuss and resolve.</p>
+            <button id="btn-resolve" class="btn btn-secondary btn-sm">Mark as Resolved</button>
+          </div>
         </div>
 
-        <!-- Score so far -->
-        <div id="score-sofar" style="flex:1;">
-          <h4 style="font-size:0.875rem; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">📊 Score So Far</h4>
-          <div id="score-sofar-bars"></div>
+        <div id="tab-panel-qs" class="tab-content" style="display:none;">
+          <div id="panel-qs-list" style="display: flex; flex-direction: column; gap: 1rem;"></div>
         </div>
-
-      </div>
+      </section>
     </div>
   </main>
 
-  <style>
-    @keyframes pulse-ring {
-      0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-      70% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
-      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-    }
-    .interrupt-active { animation: pulse-ring 1.5s infinite; }
-    .teacher-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-    @keyframes bar-fill { from { width: 0; } }
-    .score-bar-animated { animation: bar-fill 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-  </style>
-
+  <script src="nav.js"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const roomCode = params.get('room');
+    let socket = null;
+    let session = null;
+    let questions = [];
+    let currentIdx = -1;
 
-    if (!roomCode) {
-      document.body.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100vh; color:var(--text-muted);">No room code provided.</div>';
-    }
+    if (!localStorage.getItem('facultyToken')) window.location.href = 'faculty-login.html';
+    if (!roomCode) window.location.href = 'faculty-dashboard.html';
 
-    const socket = io();
-    const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
-    let recognition = null;
-    let interimTranscript = '';
-    let currentTranscript = '';
-    let peerConnections = {}; // teacherId -> RTCPeerConnection
-    let localStream = null;
-    let currentPhase = 'waiting';
-    let currentQuestionIndex = 0;
-    let isSpeaking = false;
-
-    const roomCodeDisplay = document.getElementById('room-code-display');
-    const roomCodeBig = document.getElementById('room-code-big');
-    roomCodeDisplay.textContent = roomCode;
-    roomCodeBig.textContent = roomCode;
-
-    // Setup Socket
-    socket.emit('join-session', { roomCode, role: 'student' });
-
-    socket.on('connect', () => console.log('[socket] connected:', socket.id));
-    socket.on('disconnect', () => console.log('[socket] disconnected'));
-
-    socket.on('teacher-joined', ({ teacherName, count }) => {
-      renderTeachers();
-    });
-
-    socket.on('teachers-list', ({ teachers }) => {
-      renderTeachers(teachers);
-    });
-
-    socket.on('phase-changed', ({ phase, questionIndex }) => {
-      currentPhase = phase;
-      currentQuestionIndex = questionIndex;
-      updatePhaseUI(phase);
-      if (phase !== 'waiting') {
-        document.getElementById('waiting-state').style.display = 'none';
-      }
-    });
-
-    socket.on('interrupt-fired', ({ teacherId, teacherName, question }) => {
-      const card = document.getElementById('interrupt-card');
-      card.style.display = 'block';
-      card.classList.add('interrupt-active');
-      document.getElementById('interrupt-teacher').textContent = teacherName + ' is asking:';
-      document.getElementById('interrupt-question').textContent = question;
-      document.getElementById('start-speaking-btn').disabled = false;
-      document.getElementById('done-speaking-btn').disabled = false;
-    });
-
-    socket.on('ai-score', ({ questionIndex, scores, transcript }) => {
-      revealAIScores(scores);
-    });
-
-    socket.on('panel-question-added', ({ teacherName, question }) => {
-      document.getElementById('question-card').querySelector('#q-text') ||
-        (document.getElementById('q-text').textContent = question);
-    });
-
-    // WebRTC: receive offer from student side
-    socket.on('webrtc-offer', async ({ offer, forTeacherId }) => {
-      console.log('[webrtc] received offer for teacher', forTeacherId);
-      // Not applicable on student side - student initiates
-    });
-
-    socket.on('webrtc-answer', ({ answer, toTeacherId }) => {
-      console.log('[webrtc] received answer for teacher', toTeacherId);
-      const pc = peerConnections[toTeacherId];
-      if (pc) pc.setRemoteDescription(new RTCSessionDescription(answer));
-    });
-
-    socket.on('webrtc-ice', ({ candidate, toTeacherId }) => {
-      const pc = peerConnections[toTeacherId];
-      if (pc) pc.addIceCandidate(new RTCIceCandidate(candidate));
-    });
-
-    socket.on('session-closed', ({ finalScores }) => {
-      document.getElementById('phase-pill').textContent = 'CLOSED';
-      document.getElementById('phase-pill').className = 'badge badge-emerald';
-      document.getElementById('q-text').textContent = 'Session complete. Thank you!';
-    });
-
-    socket.on('transcript-chunk', ({ text, isFinal }) => {
-      if (isFinal) {
-        currentTranscript += ' ' + text;
-        document.getElementById('transcript-box').value = currentTranscript;
-      } else {
-        document.getElementById('interim-display').textContent = text;
-      }
-    });
-
-    // ─── Functions ──────────────────────────────────────────────────────────────
-
-    async function initMedia() {
+    async function initHost() {
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        const video = document.getElementById('self-video');
-        video.srcObject = localStream;
-        video.style.display = 'block';
-        document.getElementById('self-preview-placeholder').style.display = 'none';
-        document.getElementById('mic-indicator').style.display = 'block';
-        document.getElementById('start-speaking-btn').disabled = false;
-      } catch (e) {
-        console.warn('[media] getUserMedia failed:', e.message);
+        const res = await fetch(`/api/sessions/${roomCode}`);
+        if (!res.ok) throw new Error('Session not found');
+        session = await res.json();
+        
+        const sRes = await fetch(`/api/students/${session.studentId}`);
+        const student = await sRes.json();
+        
+        const qRes = await fetch(`/api/questions/${session.studentId}`);
+        const qData = await qRes.json();
+        questions = [...qData.tier1.map(q=>({text:q,tier:1})), ...qData.tier2.map(q=>({text:q,tier:2})), ...qData.tier3.map(q=>({text:q,tier:3}))];
+
+        document.getElementById('room-display').textContent = roomCode;
+        document.getElementById('student-info').innerHTML = `
+          <div class="form-label">${student.branch} / ${student.year}</div>
+          <h3 style="color: var(--text-primary);">${student.name}</h3>
+        `;
+
+        initSocket();
+        setupTabs();
+        setupControls();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     }
 
-    function initSpeechRecognition() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) return;
-      recognition = new SR();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
+    function initSocket() {
+      socket = io(window.location.origin);
+      
+      socket.on('connect', () => {
+        document.getElementById('conn-status').innerHTML = '<span class="status-dot dot-online"></span><span style="font-size: 0.8rem;">Online</span>';
+        socket.emit('join-session', { roomCode, user: { id: 'host', role: 'faculty' } });
+      });
 
-      recognition.onstart = () => {
-        isSpeaking = true;
-        document.getElementById('speech-status').textContent = 'Listening...';
-        document.getElementById('mic-indicator').style.background = 'rgba(16,185,129,0.8)';
-        document.getElementById('done-speaking-btn').disabled = false;
-      };
+      socket.on('session-update', (updatedSession) => {
+        session = updatedSession;
+        renderTeachers();
+        renderPanelQuestions();
+      });
 
-      recognition.onresult = (event) => {
-        interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const t = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            currentTranscript += ' ' + t;
-            socket.emit('transcript-chunk', { roomCode, text: t, isFinal: true });
-          } else {
-            interimTranscript += t;
-          }
-        }
-        document.getElementById('transcript-box').value = currentTranscript;
-        document.getElementById('interim-display').textContent = interimTranscript;
-      };
+      socket.on('transcript-chunk', ({ text, isFinal }) => {
+        if (!text) return;
+        const container = document.getElementById('transcript-container');
+        const chunk = document.createElement('div');
+        chunk.className = 'transcript-chunk';
+        chunk.textContent = text;
+        container.appendChild(chunk);
+        container.scrollTop = container.scrollHeight;
+      });
 
-      recognition.onend = () => {
-        isSpeaking = false;
-        document.getElementById('speech-status').textContent = '';
-        document.getElementById('mic-indicator').style.background = 'rgba(0,0,0,0.6)';
-        document.getElementById('done-speaking-btn').disabled = true;
-      };
+      socket.on('ai-score', ({ scores }) => {
+        document.getElementById('ai-clarity').textContent = scores.clarity.toFixed(1);
+        document.getElementById('ai-reasoning').textContent = scores.reasoning.toFixed(1);
+        document.getElementById('ai-depth').textContent = scores.depth.toFixed(1);
+        document.getElementById('ai-confidence').textContent = scores.confidence.toFixed(1);
+      });
 
-      recognition.onerror = (e) => {
-        console.error('[speech] error:', e.error);
-        document.getElementById('speech-status').textContent = 'Error: ' + e.error;
-      };
+      socket.on('score-update', ({ grid, flagged, canClose }) => {
+        renderScoreGrid(grid, flagged);
+        document.getElementById('disagreement-resolution').style.display = flagged.length > 0 ? 'block' : 'none';
+        if (canClose) document.getElementById('btn-next').disabled = false;
+      });
+
+      socket.on('panel-question-added', () => {
+        showToast('New panel question added!', 'info');
+      });
     }
 
-    function renderTeachers(teachers = []) {
-      const el = document.getElementById('teachers-list');
-      if (!teachers.length) {
-        el.innerHTML = '<p style="font-size:0.8rem; color:var(--text-muted);">Waiting for teachers to join...</p>';
+    function renderTeachers() {
+      const list = document.getElementById('teachers-list');
+      if (session.teachers.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-faint); font-size: 0.85rem;">No teachers joined yet.</p>';
         return;
       }
-      el.innerHTML = teachers.map(t => `
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; padding:8px 12px; background:var(--bg-elevated); border-radius:10px;">
-          <div class="teacher-dot" style="background:var(--accent-emerald);"></div>
-          <span style="font-size:0.875rem; font-weight:500;">${t.teacherName}</span>
-          <span style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;">watching</span>
-        </div>`).join('');
+      list.innerHTML = session.teachers.map(t => `
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+          <span class="status-dot dot-online"></span> ${t.teacherName}
+        </div>
+      `).join('');
     }
 
-    function updatePhaseUI(phase) {
-      const pill = document.getElementById('phase-pill');
-      const phases = {
-        'waiting': { text: 'WAITING', cls: 'badge-secondary' },
-        'ai_round': { text: 'AI ROUND', cls: 'badge-indigo' },
-        'teacher_interrupt': { text: 'TEACHER INTERRUPT', cls: 'badge-orange' },
-        'panel_round': { text: 'PANEL ROUND', cls: 'badge-red' },
-        'scoring': { text: 'SCORING', cls: 'badge-teal' },
-        'closed': { text: 'CLOSED', cls: 'badge-emerald' }
-      };
-      const p = phases[phase] || phases.waiting;
-      pill.textContent = p.text;
-      pill.className = `badge ${p.cls}`;
-
-      if (phase === 'ai_round' || phase === 'panel_round') {
-        document.getElementById('done-speaking-btn').disabled = isSpeaking;
-      }
+    function renderScoreGrid(grid, flagged) {
+      const tbody = document.getElementById('score-grid-tbody');
+      tbody.innerHTML = Object.entries(grid).map(([teacherId, scores]) => {
+        const teacher = session.teachers.find(t => t.teacherId === teacherId);
+        return `
+          <tr>
+            <td>${teacher ? teacher.teacherName : 'Unknown'}</td>
+            <td class="${flagged.includes('clarity')?'flagged-score':''}">${scores.clarity}</td>
+            <td class="${flagged.includes('reasoning')?'flagged-score':''}">${scores.reasoning}</td>
+            <td class="${flagged.includes('depth')?'flagged-score':''}">${scores.depth}</td>
+            <td class="${flagged.includes('confidence')?'flagged-score':''}">${scores.confidence}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    function revealAIScores(scores) {
-      const el = document.getElementById('score-reveal');
-      el.style.display = 'block';
-      const barsEl = document.getElementById('score-bars');
-      barsEl.innerHTML = '';
-      const dimLabels = { clarity: 'Clarity', reasoning: 'Reasoning', depth: 'Technical Depth', confidence: 'Confidence' };
-      const dimColors = { clarity: '#60A5FA', reasoning: '#F59E0B', depth: '#EF4444', confidence: '#10B981' };
-      Object.entries(scores).forEach(([dim, score]) => {
-        const pct = (score / 5) * 100;
-        barsEl.innerHTML += `
-          <div style="margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <span style="font-size:0.875rem;">${dimLabels[dim]}</span>
-              <span style="font-family:var(--font-mono); font-weight:700;">${score}/5</span>
-            </div>
-            <div class="progress-bar-track" style="height:10px; border-radius:5px;">
-              <div class="score-bar-animated" style="height:100%; width:${pct}%; background:${dimColors[dim]}; border-radius:5px;"></div>
-            </div>
-          </div>`;
+    function renderPanelQuestions() {
+      const list = document.getElementById('panel-qs-list');
+      list.innerHTML = session.panelQuestions.map(pq => `
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center; ${pq.answered?'opacity:0.5':''}">
+          <div>
+            <div class="form-label">${pq.teacherName} asks:</div>
+            <p style="font-weight: 500; ${pq.answered?'text-decoration:line-through':''}">${pq.question}</p>
+          </div>
+          ${!pq.answered ? `<button class="btn btn-ghost btn-sm" onclick="markAnswered('${pq.id}')">Mark Answered</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function markAnswered(id) {
+      socket.emit('mark-panel-answered', { roomCode, questionId: id });
+    }
+
+    function setupTabs() {
+      document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+          t.classList.add('active');
+          document.getElementById(`tab-${t.dataset.tab}`).style.display = 'block';
+        });
       });
     }
 
-    // ─── Speech button handlers ──────────────────────────────────────────────────
-    document.getElementById('start-speaking-btn').addEventListener('click', () => {
-      if (recognition) {
-        currentTranscript = document.getElementById('transcript-box').value.trim();
-        interimTranscript = '';
-        recognition.start();
-      }
-    });
+    function setupControls() {
+      const btnStart = document.getElementById('btn-start');
+      const btnNext = document.getElementById('btn-next');
+      const btnEnd = document.getElementById('btn-end');
 
-    document.getElementById('done-speaking-btn').addEventListener('click', async () => {
-      if (recognition) recognition.stop();
-      const transcript = document.getElementById('transcript-box').value.trim();
-      if (!transcript) return;
+      btnStart.addEventListener('click', () => {
+        currentIdx = 0;
+        const q = questions[currentIdx];
+        socket.emit('phase-change', { roomCode, phase: 'defense', question: q });
+        document.getElementById('host-question-text').textContent = q.text;
+        btnStart.disabled = true;
+        btnEnd.disabled = false;
+        showToast('Defense started!', 'success');
+      });
 
-      if (currentPhase === 'ai_round') {
-        // Get current question text from session
-        try {
-          const sessionRes = await fetch(`/api/sessions/${roomCode}`);
-          const session = await sessionRes.json();
-          const questions = session.questions?.questions || {};
-          const allQ = [...(questions.tier1 || []), ...(questions.tier2 || []), ...(questions.tier3 || [])];
-          const questionText = allQ[currentQuestionIndex] || '';
-
-          document.getElementById('speech-status').textContent = 'AI is evaluating...';
-          const res = await fetch('/api/evaluate-response', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: session.id, questionIndex: currentQuestionIndex, transcript, questionText })
-          });
-          const data = await res.json();
-          if (data.scores) revealAIScores(data.scores);
-          document.getElementById('speech-status').textContent = '';
-        } catch (e) {
-          document.getElementById('speech-status').textContent = 'Evaluation error.';
+      btnNext.addEventListener('click', () => {
+        currentIdx++;
+        if (currentIdx < questions.length) {
+          const q = questions[currentIdx];
+          socket.emit('phase-change', { roomCode, phase: 'defense', question: q });
+          document.getElementById('host-question-text').textContent = q.text;
+          document.getElementById('transcript-container').innerHTML = '';
+          document.getElementById('score-grid-tbody').innerHTML = '';
+          btnNext.disabled = true;
+        } else {
+          showToast('All questions completed!', 'info');
+          btnNext.disabled = true;
         }
-      } else if (currentPhase === 'panel_round' || currentPhase === 'teacher_interrupt') {
-        socket.emit('transcript-chunk', { roomCode, text: transcript, isFinal: true });
-        socket.emit('student-answered', { roomCode, transcript, questionIndex: currentQuestionIndex });
-      }
-    });
-
-    // ─── WebRTC: connect to each teacher ────────────────────────────────────────
-    function connectToTeacher(teacherId) {
-      const pc = new RTCPeerConnection({ iceServers });
-      peerConnections[teacherId] = pc;
-
-      if (localStream) {
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-      }
-
-      pc.onicecandidate = ({ candidate }) => {
-        if (candidate) socket.emit('webrtc-ice', { roomCode, candidate, toTeacherId: teacherId });
-      };
-
-      pc.onconnectionstatechange = () => {
-        console.log(`[pc ${teacherId}] state:`, pc.connectionState);
-      };
-
-      pc.ontrack = ({ streams }) => {
-        console.log('[pc] received remote stream for', teacherId);
-        // Student side: we don't display teacher video, only audio if needed
-      };
-
-      // Student creates offer
-      pc.createOffer().then(offer => {
-        pc.setLocalDescription(offer);
-        socket.emit('webrtc-offer', { roomCode, offer, teacherId });
       });
 
-      return pc;
+      btnEnd.addEventListener('click', () => {
+        if (!confirm('Are you sure you want to end the session?')) return;
+        socket.emit('phase-change', { roomCode, phase: 'closed' });
+        window.location.href = 'faculty-dashboard.html';
+      });
+
+      document.getElementById('btn-resolve').addEventListener('click', () => {
+        document.getElementById('disagreement-resolution').style.display = 'none';
+        btnNext.disabled = false;
+        showToast('Disagreement marked as resolved', 'success');
+      });
     }
 
-    socket.on('teacher-joined', ({ teacherId }) => {
-      if (!peerConnections[teacherId]) {
-        connectToTeacher(teacherId);
-      }
-    });
-
-    // Init
-    initMedia();
-    initSpeechRecognition();
+    initHost();
   </script>
 </body>
 </html>
