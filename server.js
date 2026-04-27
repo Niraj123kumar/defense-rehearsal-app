@@ -6,14 +6,14 @@ const fsPromises = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
-const Anthropic = require('@anthropic-ai/sdk');
+const { Groq } = require('groq-sdk');
 
-if (!process.env.ANTHROPIC_API_KEY) { 
-  console.error('ANTHROPIC_API_KEY is required'); 
+if (!process.env.GROQ_API_KEY) { 
+  console.error('GROQ_API_KEY is required'); 
   process.exit(1); 
 } 
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }); 
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); 
 
 const app = express();
 const httpServer = createServer(app);
@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-// Storage Helpers (moved before initStorage)
+// Storage Helpers
 async function readJSON(filename) {
   try {
     const data = await fsPromises.readFile(path.join(DATA_DIR, filename), 'utf8');
@@ -79,27 +79,31 @@ async function initStorage() {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// AI Provider Logic
+// AI Provider Logic using Groq (free tier)
 async function callAI(prompt, systemPrompt = "You are a helpful academic assistant.") {
   try {
-    const msg = await anthropic.messages.create({ 
-      model: 'claude-haiku-4-5-20251001', 
-      max_tokens: 1024, 
-      messages: [{ role: 'user', content: prompt }] 
-    }); 
-    const text = msg.content[0].text; 
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      model: "llama3-70b-8192",  // Free, good quality
+      temperature: 0.7,
+      max_tokens: 1024,
+    });
+    const text = chatCompletion.choices[0]?.message?.content || "";
     return text;
   } catch (err) {
-    console.error('Claude API error:', err);
+    console.error('Groq API error:', err);
     throw err;
   }
 }
 
-// API Routes (all your existing routes go here - they are unchanged)
+// API Routes (all unchanged except health endpoint)
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    aiProvider: 'Claude (claude-haiku-4-5-20251001)',
+    aiProvider: 'Groq (llama3-70b-8192)',
     timestamp: new Date().toISOString()
   });
 });
@@ -213,7 +217,7 @@ app.post('/api/generate-questions/:id', async (req, res) => {
     const questions = JSON.parse(aiResponse.match(/\{[\s\S]*\}/)[0]);
     
     await writeJSON(`questions_${req.params.id}.json`, questions);
-    res.json({ success: true, questions, aiProvider: 'Claude' });
+    res.json({ success: true, questions, aiProvider: 'Groq' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -564,6 +568,6 @@ io.on('connection', (socket) => {
 httpServer.listen(PORT, async () => {
   await initStorage();
   console.log(`PDRS Server v3.0.0 running at http://localhost:${PORT}`);
-  console.log(`AI Provider: Claude (claude-haiku-4-5-20251001)`);
+  console.log(`AI Provider: Groq (llama3-70b-8192)`);
   console.log(`Data Directory: ${DATA_DIR}`);
 });

@@ -1,18 +1,30 @@
 {
-  "name": "defense-rehearsal-app",
+  "name": "pdrs-v3",
   "version": "3.0.0",
-  "main": "server.js",
-  "type": "commonjs",
+  "main": "server/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "kill": "lsof -ti:8080 | xargs kill -9",
+    "restart": "npm run kill && npm start"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
-    "bcryptjs": "^3.0.3",
-    "express": "^5.2.1",
+    "@anthropic-ai/sdk": "^0.36.3",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.4",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.2.0",
+    "express-validator": "^7.0.1",
     "groq-sdk": "^1.1.2",
-    "socket.io": "^4.8.3",
-    "uuid": "^13.0.0"
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "puppeteer": "^24.42.0",
+    "uuid": "^9.0.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
